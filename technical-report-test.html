@@ -136,7 +136,45 @@
       <div id="chemicalList">
         <ul id="listContainer"></ul>
       </div>
+<!-- Section -->
+<label for="section" id="labelsection">Section:</label>
+<select id="section" required>
+  <option value="">Select section</option>
+  <option>1</option>
+  <option>2</option>
+  <option>3</option>
+  <option>4</option>
+  <option>5</option>
+  <option>6</option>
+  <option>7</option>
+  <option>8</option>
+  <option>9</option>
+  <option>10</option>
+</select>
 
+<!-- Bay (populates when Section is chosen) -->
+<label for="bay" id="labelbay">Bay:</label>
+<select id="bay" required>
+  <option value="">Select bay</option>
+</select>
+
+<!-- Crop (type-ahead, same label+control layout) -->
+<label for="cropInput" id="labelcrop">Crop:</label>
+<input id="cropInput" list="cropList" placeholder="Start typing crop…" />
+
+<datalist id="cropList">
+  <option value="PETUNIA"></option>
+  <option value="CALI"></option>
+  <option value="COLEOUS"></option>
+  <option value="BEGONIA"></option>
+  <option value="POINSETTIA"></option>
+  <option value="MUM"></option>
+  <option value="TORENIA"></option>
+  <option value="IMPATIANS"></option>
+  <option value="VINCA"></option>
+  <option value="ZINNIA"></option>
+</datalist>
+    
       <button
         onclick="submitData()"
         class="action-button"
@@ -276,6 +314,27 @@
     let flashOn = false;
     const chemicals = [];
     const MAX_CHEMICALS = 50;
+// Section → Bay options (expand later as needed)
+const SECTION_BAYS = {
+  "1": ["B01","B02","B03","B04","B05","B06"],
+  "2": ["B02","B03","B04","B05","B06","B07","B08","B09","B10","B11","B12","B13","B14","B15","B16"]
+};
+
+// Hook Section change → populate Bay
+window.addEventListener("load", () => {
+  const sectionEl = document.getElementById("section");
+  const bayEl = document.getElementById("bay");
+  if (!sectionEl || !bayEl) return;
+
+  bayEl.disabled = true;
+
+  sectionEl.addEventListener("change", () => {
+    const bays = SECTION_BAYS[sectionEl.value] || [];
+    bayEl.innerHTML = '<option value="">Select bay</option>' +
+      bays.map(b => `<option value="${b}">${b}</option>`).join("");
+    bayEl.disabled = bays.length === 0;
+  });
+});
 
     async function openScanner() {
       const t = getTranslations();
