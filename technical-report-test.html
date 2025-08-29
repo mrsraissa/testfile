@@ -39,8 +39,8 @@
   </style>
 </head>
 <body>
-  <!-- ❌ Removed Auth0 Protection scripts -->
-
+    
+  </script>
   <div class="page-wrapper">
     <header class="header">
       <div class="icon-title">
@@ -164,8 +164,349 @@
   </div>
 
   <script>
-    /* your full script here stays the same */
-    /* (all scanner, translations, submitData, etc.) */
+    const translations = {
+      en: {
+        title: "Technical Report",
+        scan: "Scan Chemical",
+        searching: "🔍 Searching ...",
+        amount: "Amount",
+        addChemical: "Add Chemical",
+        unit: "Unit",
+        selectUnit: "Select unit",
+        submit: "Submit",
+        notFound: "❌ Product not found",
+        errorCheck: "❌ Error checking inventory",
+        errorCamera: "❌ Error starting camera",
+        submitSuccess: "✅ Submitted successfully.",
+        submitEmpty: "Add at least one chemical before submitting.",
+        scanInvalid: "Please scan a valid chemical and enter amount.",
+        employeeRequired: "Employee name is required.",
+        confirmDelete: "Are you sure you want to remove this chemical?",
+        scanAgain: "🔄 Scan Again",
+      },
+      es: {
+        title: "Informe Técnico",
+        scan: "Escanear químico",
+        searching: "🔍 Buscando ...",
+        amount: "Cantidad",
+        addChemical: "Agregar químico",
+        unit: "Unidad",
+        selectUnit: "Selecciona unidad",
+        submit: "Enviar",
+        notFound: "❌ Producto no encontrado",
+        errorCheck: "❌ Error al verificar el inventario",
+        errorCamera: "❌ Error al iniciar la cámara",
+        submitSuccess: "✅ Enviado con éxito.",
+        submitEmpty: "Agrega al menos un químico antes de enviar.",
+        scanInvalid: "Escanea un químico válido y llena la cantidad.",
+        employeeRequired: "Se requiere el nombre del empleado.",
+        confirmDelete: "¿Estás seguro de eliminar este químico?",
+        scanAgain: "🔄 Escanear nuevamente",
+      },
+    };
+
+    function getTranslations() {
+      const lang = localStorage.getItem("language") || "en";
+      return translations[lang] || translations["en"];
+    }
+
+    function fallbackToFileInput() {
+      document.getElementById("imageInput").style.display = "block";
+      document.getElementById("productInfo").innerText = "📷 Tap to scan or upload image";
+    }
+
+    function handleImageUpload(event) {
+      const t = getTranslations();
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = function () {
+          codeReader = new ZXing.BrowserMultiFormatReader();
+          codeReader
+            .decodeFromImage(img)
+            .then((result) => handleBarcode(result))
+            .catch(() => {
+              document.getElementById("productInfo").innerText = t.notFound;
+            });
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleBarcode(result) {
+      const t = getTranslations();
+      codeReader.reset();
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
+      }
+      const barcode = result.text;
+      lastBarcode = barcode;
+      fetch(
+        `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(
+          barcode
+        )}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+          if (data.status === "found") {
+            lastProductName = data.product;
+            document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
+          } else {
+            lastProductName = "";
+            document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+          }
+          document.getElementById("scannerUI").style.display = "none";
+          document.querySelector(".scanner-overlay").style.display = "none";
+        })
+        .catch(() => {
+          document.getElementById("productInfo").innerHTML = t.errorCheck;
+        });
+    }
+
+    let codeReader;
+    let lastProductName = "";
+    let lastBarcode = "";
+    let previewElem;
+    let currentStream;
+    let flashOn = false;
+    const chemicals = [];
+    const MAX_CHEMICALS = 50;
+
+    async function openScanner() {
+      const t = getTranslations();
+
+      document.getElementById("productInfo").innerHTML = t.searching;
+      document.getElementById("startScanBtn").style.display = "none";
+      document.getElementById("scannerUI").style.display = "flex";
+
+      try {
+        const constraints = {
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        };
+
+        previewElem = document.getElementById("preview");
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = stream;
+        previewElem.srcObject = stream;
+        previewElem.play();
+        document.querySelector(".scanner-overlay").style.display = "block";
+
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        codeReader
+          .decodeOnceFromVideoDevice(null, previewElem)
+          .then((result) => {
+            codeReader.reset();
+            const barcode = result.text;
+            lastBarcode = barcode;
+
+            fetch(
+              `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(
+                barcode
+              )}`
+            )
+              .then((res) => res.json())
+              .then((data) => {
+                const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+                if (data.status === "found") {
+                  lastProductName = data.product;
+                  document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
+                } else {
+                  lastProductName = "";
+                  document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+                }
+              })
+              .catch(() => {
+                lastProductName = "";
+                document.getElementById("productInfo").innerHTML = `${t.errorCheck}<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+              });
+          })
+          .catch((err) => {
+            console.error(err);
+            document.getElementById("productInfo").innerHTML = `${t.errorCamera}<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+          });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("productInfo").innerHTML = `${t.errorCamera}<br>
+      <button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">
+        ${t.scanAgain}
+      </button>`;
+      }
+    }
+
+    function toggleFlash() {
+      if (!currentStream) return;
+      const track = currentStream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      if (!capabilities.torch) {
+        alert("Flash not supported on this device.");
+        return;
+      }
+      flashOn = !flashOn;
+      track.applyConstraints({ advanced: [{ torch: flashOn }] });
+    }
+
+    function closeScanner() {
+      if (codeReader) codeReader.reset();
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
+      }
+      document.getElementById("scannerUI").style.display = "none";
+      document.querySelector(".scanner-overlay").style.display = "none";
+      document.getElementById("startScanBtn").style.display = "block";
+      document.getElementById("productInfo").innerHTML = "";
+    }
+
+    function rescanChemical() {
+      document.getElementById("amount").value = "";
+      openScanner();
+    }
+
+    function addChemical() {
+      const t = getTranslations();
+
+      if (chemicals.length >= MAX_CHEMICALS) {
+        alert("You have reached the maximum of 50 chemicals.");
+        return;
+      }
+      const amount = document.getElementById("amount").value.trim();
+      const unit = document.getElementById("unit").value;
+      let employee = localStorage.getItem("employeeName");
+      if (!employee) {
+        employee = prompt("Enter your name:");
+        if (employee) {
+          localStorage.setItem("employeeName", employee);
+        } else {
+          alert(t.employeeRequired);
+          return;
+        }
+      }
+      if (!lastProductName || !amount || !unit) {
+        alert(t.scanInvalid);
+        return;
+      }
+
+      chemicals.push({ product: lastProductName, amount, employee, barcode: lastBarcode, unit });
+ 
+      const li = document.createElement("li");
+      const index = chemicals.length - 1;
+
+      li.innerHTML = `<span>${lastProductName} — ${amount} ${unit}</span>
+        <div style="display: flex; gap: 10px;">
+          <button onclick="editChemical(${index})" style="color: blue; background: none; border: none; cursor: pointer;">✏️</button>
+          <button onclick="removeChemical(${index})" style="color: red; background: none; border: none; cursor: pointer; margin-left: 10px;">❌</button>`;
+      li.style.display = "flex";
+      li.style.justifyContent = "space-between";
+      li.style.alignItems = "center";
+      li.style.padding = "8px 0";
+      document.getElementById("listContainer").appendChild(li);
+
+      document.getElementById("scannerUI").style.display = "none";
+      document.querySelector(".scanner-overlay").style.display = "none";
+      document.getElementById("startScanBtn").style.display = "block";
+      document.getElementById("amount").value = "";
+      document.getElementById("unit").value = "";
+      lastProductName = "";
+    }
+
+    function submitData() {
+      const t = getTranslations();
+
+      if (chemicals.length === 0) {
+        alert(t.submitEmpty);
+        return;
+      }
+      
+const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZJvLWoJLjt07RE8W8oELcGU7MDQf2HhcsrEJQWnXZr8Opyc/exec";
+       chemicals.forEach((entry) => {
+    const formData = new URLSearchParams();
+    formData.append("employee", entry.employee);
+    formData.append("chemical", entry.product);
+    formData.append("barcode", entry.barcode);
+    formData.append("amount", entry.amount);  // make sure you use "amount" here (not quantity)
+    formData.append("unit", entry.unit);
+
+    fetch(scriptURL, {
+      method: "POST",
+      mode: "no-cors", // for Google Apps Script CORS
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
+    });
+  });
+
+  document.getElementById("result").innerText = t.submitSuccess;
+  document.getElementById("listContainer").innerHTML = "";
+  chemicals.length = 0;
+}
+    function editChemical(index) {
+      const t = getTranslations();
+
+      const item = chemicals[index];
+      document.getElementById("amount").value = item.amount;
+      document.getElementById("unit").value = item.unit;
+      lastProductName = item.product;
+      lastBarcode = item.barcode;
+      document.getElementById("productInfo").innerHTML = `✏️ Editing: <strong>${item.product}</strong>`;
+      document.getElementById("scannerUI").style.display = "flex";
+      document.getElementById("startScanBtn").style.display = "none";
+      chemicals.splice(index, 1);
+      const list = document.getElementById("listContainer");
+      list.removeChild(list.childNodes[index]);
+    }
+
+    function removeChemical(index) {
+      const t = getTranslations();
+
+      if (confirm(t.confirmDelete)) {
+        chemicals.splice(index, 1);
+        const list = document.getElementById("listContainer");
+        list.removeChild(list.childNodes[index]);
+      }
+    }
+
+    function goBack() {
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
+      }
+      window.location.href = "./index.html";
+    }
+
+    window.onload = () => {
+      const t = getTranslations();
+
+      previewElem = document.getElementById("preview");
+      document.querySelector(".scanner-overlay").style.display = "none";
+
+      document.getElementById("btnScanText").innerText = t.scan;
+      document.getElementById("labelamount").innerText = t.amount;
+      document.getElementById("labelunit").innerText = t.unit;
+      document.getElementById("optionSelectUnit").innerText = t.selectUnit;
+
+      document.getElementById("btnAddText").innerText = t.addChemical;
+      document.getElementById("btnSubmitText").innerText = t.submit;
+
+      document.getElementById("pageTitle").innerText = t.title;
+
+      document.title = t.title;
+    };
+
+   
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("service-worker.js")
+          .then((reg) => console.log("✅ Service Worker registered:", reg.scope))
+          .catch((err) => console.error("❌ Service Worker registration failed:", err));
+      });
+    }
   </script>
 </body>
 </html>
