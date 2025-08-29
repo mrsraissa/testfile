@@ -452,24 +452,9 @@ window.addEventListener("load", () => {
       document.getElementById("scannerUI").style.display = "none";
       document.querySelector(".scanner-overlay").style.display = "none";
       document.getElementById("startScanBtn").style.display = "block";
-      // clear amount + unit
-document.getElementById("amount").value = "";
-document.getElementById("unit").value = "";
-
-// clear Section / Bay / Crop and re-disable Bay until a section is picked
-const sectionEl = document.getElementById("section");
-const bayEl = document.getElementById("bay");
-const cropEl = document.getElementById("cropInput");
-
-sectionEl.value = "";
-bayEl.innerHTML = '<option value="">Select bay</option>';
-bayEl.disabled = true;
-cropEl.value = "";
-
-// clear last scanned values
-lastProductName = "";
-lastBarcode = "";
+      document.getElementById("productInfo").innerHTML = "";
     }
+  
 
     function rescanChemical() {
       document.getElementById("amount").value = "";
