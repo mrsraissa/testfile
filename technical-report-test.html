@@ -483,7 +483,25 @@ window.addEventListener("load", () => {
         return;
       }
 
-      chemicals.push({ product: lastProductName, amount, employee, barcode: lastBarcode, unit });
+      // read current Section / Bay / Crop (uppercase crop to match your list)
+const section = (document.getElementById("section")?.value || "").trim();
+const bay     = (document.getElementById("bay")?.value || "").trim();
+const crop    = (document.getElementById("cropInput")?.value || "").trim().toUpperCase();
+
+// (optional) require them before adding — uncomment if you want to enforce
+// if (!section || !bay || !crop) { alert("Select Section, Bay and Crop."); return; }
+
+chemicals.push({
+  product: lastProductName,
+  amount,
+  unit,
+  employee,
+  barcode: lastBarcode,
+  section,
+  bay,
+  crop
+});
+
  
       const li = document.createElement("li");
       const index = chemicals.length - 1;
