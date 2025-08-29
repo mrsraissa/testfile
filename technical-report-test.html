@@ -158,7 +158,7 @@
   <option value="">Select bay</option>
 </select>
 
-<!-- Crop (type-ahead, same label+control layout) -->
+<!-- Crop with type-ahead -->
 <label for="cropInput" id="labelcrop">Crop:</label>
 <input id="cropInput" list="cropList" placeholder="Start typing crop…" />
 
@@ -174,7 +174,7 @@
   <option value="VINCA"></option>
   <option value="ZINNIA"></option>
 </datalist>
-    
+   
       <button
         onclick="submitData()"
         class="action-button"
@@ -314,6 +314,31 @@
     let flashOn = false;
     const chemicals = [];
     const MAX_CHEMICALS = 50;
+
+// ---- Crop type-ahead helpers (no other code touched) ----
+window.addEventListener("load", () => {
+  const cropInput = document.getElementById("cropInput");
+  if (!cropInput) return;
+
+  // Open the datalist dropdown on focus (supported in Chrome/Edge)
+  cropInput.addEventListener("focus", () => {
+    if (typeof cropInput.showPicker === "function") {
+      cropInput.showPicker();
+    }
+  });
+
+  // Keep typed text uppercase so it matches the option values
+  cropInput.addEventListener("input", () => {
+    const pos = cropInput.selectionStart;
+    cropInput.value = cropInput.value.toUpperCase();
+    // restore caret position so typing feels normal
+    cropInput.setSelectionRange(pos, pos);
+  });
+});
+
+
+
+    
 // Section → Bay options (expand later as needed)
 const SECTION_BAYS = {
   "1": ["B01","B02","B03","B04","B05","B06"],
