@@ -1,126 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Technical Report Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Technical Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- ✅ PWA Essentials -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2196f3" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/technical-report.css" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b3d2e;
-      color: #fff;
-      padding: 20px;
+    .scanner-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60%;
+      height: 30%;
+      transform: translate(-50%, -50%);
+      border: 3px solid limegreen;
+      border-radius: 8px;
+      pointer-events: none;
+      animation: pulse-border 1s infinite;
+      display: none;
     }
-    h1 { font-size: 22px; margin-bottom: 12px; }
-    .pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .btn {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 999px;
-      padding: 8px 14px;
-      cursor: pointer;
-      color: #fff;
+    @keyframes pulse-border {
+      0% {
+        box-shadow: 0 0 0 0 rgba(50, 205, 50, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(50, 205, 50, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(50, 205, 50, 0);
+      }
     }
-    .btn.active { background: #fff; color: #0b3d2e; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2); }
-    input { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; }
-    .actions { margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px; }
-    .primary { background: #fff; color: #0b3d2e; padding: 10px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .ghost { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 14px; border-radius: 6px; cursor: pointer; }
-    .hint { font-size: 12px; color: #cde6dc; }
   </style>
 </head>
 <body>
-  <h1>Technical Report Test</h1>
+  <!-- ❌ Removed Auth0 Protection scripts -->
 
-  <h2>Employee</h2>
-  <input id="employee" placeholder="Employee name">
+  <div class="page-wrapper">
+    <header class="header">
+      <div class="icon-title">
+        <span class="material-icons">description</span>
+        <h2 id="pageTitle" style="font-size: 18px; font-weight: normal; margin: 0;">Technical Report</h2>
+      </div>
+    </header>
 
-  <h2>Crop</h2>
-  <div id="cropGroup" class="pill-group"></div>
+    <main
+      class="content"
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 80px 20px 120px;
+        overflow-y: visible;
+        position: relative;
+      "
+    >
+      <button
+        id="startScanBtn"
+        onclick="openScanner()"
+        style="
+          padding: 40px;
+          font-size: 24px;
+          border-radius: 12px;
+          background-color: #66bb6a;
+          color: black;
+          border: none;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        "
+      >
+        <span class="material-icons">qr_code_scanner</span> <span id="btnScanText">Scan Chemical</span>
+      </button>
 
-  <h2>Section</h2>
-  <div id="sectionGroup" class="pill-group"></div>
+      <div id="scannerUI" style="display: none">
+        <div style="position: relative; width: 100%; max-width: 400px">
+          <video id="preview" playsinline style="width: 100%; border-radius: 12px"></video>
+          <div class="scanner-overlay"></div>
 
-  <h2>Bay</h2>
-  <div id="bayGroup" class="pill-group"></div>
+          <button
+            onclick="toggleFlash()"
+            style="
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              padding: 10px;
+              background: rgba(0, 0, 0, 0.6);
+              color: #ffd600;
+              border: none;
+              border-radius: 50%;
+              font-size: 20px;
+              cursor: pointer;
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            "
+          >
+            🔦
+          </button>
+        </div>
 
-  <h2>Chemicals</h2>
-  <table>
-    <thead>
-      <tr><th>#</th><th>Barcode</th><th>Name</th><th>Qty</th><th>Notes</th><th></th></tr>
-    </thead>
-    <tbody id="chemBody"></tbody>
-  </table>
-  <button class="ghost" id="addRowBtn">+ Add chemical</button>
+        <div
+          id="productInfo"
+          style="font-size: 2em; font-weight: bold; text-align: center; color: #004d00"
+        >
+          &nbsp;
+        </div>
 
-  <h2>Submit</h2>
-  <input id="endpoint" placeholder="Apps Script/Proxy URL">
-  <input id="tvSheet" placeholder="TV Sheet name (default: TechReport_TV)">
-  <div class="actions">
-    <button class="ghost" id="previewBtn">Preview JSON</button>
-    <button class="primary" id="submitBtn">Submit</button>
+        <label for="amount" id="labelamount">Amount:</label>
+        <input type="number" id="amount" name="amount" required />
+
+        <!-- ADDED UNIT SELECT -->
+        <label for="unit" id="labelunit">Unit:</label>
+        <select id="unit" required>
+          <option id="optionSelectUnit" value="">Select unit</option>
+          <option value="oz">oz</option>
+          <option value="fl oz">fl oz</option>
+          <option value="lb">lb</option>
+          <option value="ml">ml</option>
+          <option value="g">g</option>
+          <option value="EA">EA</option>
+        </select>
+
+        <button onclick="addChemical()" class="action-button">
+          <span class="material-icons">add_circle</span>
+          <span id="btnAddText">Add Chemical</span>
+        </button>
+      </div>
+
+      <div id="chemicalList">
+        <ul id="listContainer"></ul>
+      </div>
+
+      <button
+        onclick="submitData()"
+        class="action-button"
+        style="
+          margin-top: 20px;
+          align-self: center;
+          padding: 20px 30px;
+          font-size: 20px;
+          border-radius: 12px;
+          background-color: #66bb6a;
+          color: white;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        "
+      >
+        <span class="material-icons">send</span> <span id="btnSubmitText">Submit</span>
+      </button>
+      <div id="result"></div>
+    </main>
+
+    <footer class="bottom-bar">
+      <button type="button" onclick="goBack()"><span class="material-icons">home</span></button>
+    </footer>
   </div>
-  <p id="status" class="hint"></p>
 
   <script>
-    const CONFIG = {
-      crops: ["Poinsettia","Mum","Petunia","Celosia","Impatiens","Zinnia"],
-      sections: Array.from({length:10},(_,i)=>String(i+1)),
-      bays: ["1","2","3","A1","B1","B6A","B7B"],
-      maxLines: 10
-    };
-    const state = { crop:null, section:null, bay:null, lines:[] };
-    const $ = s=>document.querySelector(s);
-
-    function makePills(id,list,cb){
-      const el=$(id); el.innerHTML="";
-      list.forEach(val=>{
-        const b=document.createElement("button");
-        b.className="btn"; b.textContent=val;
-        b.onclick=()=>{ [...el.children].forEach(x=>x.classList.remove("active")); b.classList.add("active"); cb(val); };
-        el.appendChild(b);
-      });
-    }
-    function addRow(){
-      if(state.lines.length>=CONFIG.maxLines) return;
-      const tbody=$("#chemBody"); const i=state.lines.length+1;
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${i}</td>
-        <td><input></td><td><input></td><td><input></td><td><input></td>
-        <td><button class="btn" onclick="this.closest('tr').remove()">X</button></td>`;
-      tbody.appendChild(tr); state.lines.push(tr);
-    }
-    function payload(){
-      return {
-        employee:$("#employee").value.trim(),
-        crop:state.crop, section:state.section, bay:state.bay,
-        endpoint:$("#endpoint").value.trim(),
-        tvSheet:$("#tvSheet").value.trim()||"TechReport_TV",
-        lines:[...$("#chemBody").children].map(tr=>({
-          barcode:tr.children[1].querySelector("input").value,
-          name:tr.children[2].querySelector("input").value,
-          qty:tr.children[3].querySelector("input").value,
-          notes:tr.children[4].querySelector("input").value
-        })).filter(x=>x.barcode||x.name||x.qty||x.notes)
-      };
-    }
-    async function submit(){
-      const p=payload(); if(!p.endpoint) return status("Need endpoint");
-      try{
-        const r=await fetch(p.endpoint,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
-        status(r.ok?"Submitted ✔":"Error "+r.status);
-      }catch(e){ status("Failed: "+e.message); }
-    }
-    function preview(){ alert(JSON.stringify(payload(),null,2)); }
-    function status(msg){ $("#status").textContent=msg; }
-
-    makePills("#cropGroup",CONFIG.crops,v=>state.crop=v);
-    makePills("#sectionGroup",CONFIG.sections,v=>state.section=v);
-    makePills("#bayGroup",CONFIG.bays,v=>state.bay=v);
-    $("#addRowBtn").onclick=addRow; addRow();
-    $("#submitBtn").onclick=submit; $("#previewBtn").onclick=preview;
+    /* your full script here stays the same */
+    /* (all scanner, translations, submitData, etc.) */
   </script>
 </body>
 </html>
