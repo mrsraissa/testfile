@@ -505,11 +505,15 @@ chemicals.push({
       const li = document.createElement("li");
       const index = chemicals.length - 1;
 
-      li.innerHTML = `<span>${lastProductName} — ${amount} ${unit}</span>
-        <div style="display: flex; gap: 10px;">
-          <button onclick="editChemical(${index})" style="color: blue; background: none; border: none; cursor: pointer;">✏️</button>
-          <button onclick="removeChemical(${index})" style="color: red; background: none; border: none; cursor: pointer; margin-left: 10px;">❌</button>`;
-      li.style.display = "flex";
+      li.innerHTML = `<span>
+  ${lastProductName} — ${amount} ${unit}
+  <small style="opacity:.8; margin-left:8px;">• S:${section || '-'} • Bay:${bay || '-'} • Crop:${crop || '-'}</small>
+</span>
+<div style="display: flex; gap: 10px;">
+  <button onclick="editChemical(${index})" style="color: blue; background: none; border: none; cursor: pointer;">✏️</button>
+  <button onclick="removeChemical(${index})" style="color: red; background: none; border: none; cursor: pointer; margin-left: 10px;">❌</button>
+</div>`;
+
       li.style.justifyContent = "space-between";
       li.style.alignItems = "center";
       li.style.padding = "8px 0";
