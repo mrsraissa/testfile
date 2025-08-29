@@ -315,25 +315,30 @@
     const chemicals = [];
     const MAX_CHEMICALS = 50;
 
-// ---- Crop type-ahead helpers (no other code touched) ----
+// --- Make the Crop datalist open while typing ---
 window.addEventListener("load", () => {
   const cropInput = document.getElementById("cropInput");
   if (!cropInput) return;
 
-  // Open the datalist dropdown on focus (supported in Chrome/Edge)
-  cropInput.addEventListener("focus", () => {
-    if (typeof cropInput.showPicker === "function") {
-      cropInput.showPicker();
-    }
-  });
-
-  // Keep typed text uppercase so it matches the option values
+  // Keep text uppercase so it matches your options
   cropInput.addEventListener("input", () => {
     const pos = cropInput.selectionStart;
     cropInput.value = cropInput.value.toUpperCase();
-    // restore caret position so typing feels normal
     cropInput.setSelectionRange(pos, pos);
+
+    // Try to open the native datalist dropdown on every keystroke
+    if (typeof cropInput.showPicker === "function") {
+      // show after value updates
+      setTimeout(() => cropInput.showPicker(), 0);
+    }
   });
+
+  // Also open on focus and first key press
+  const tryOpen = () => {
+    if (typeof cropInput.showPicker === "function") cropInput.showPicker();
+  };
+  cropInput.addEventListener("focus", tryOpen);
+  cropInput.addEventListener("keydown", () => setTimeout(tryOpen, 0));
 });
 
 
