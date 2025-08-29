@@ -126,16 +126,6 @@
           <option value="g">g</option>
           <option value="EA">EA</option>
         </select>
-
-        <button onclick="addChemical()" class="action-button">
-          <span class="material-icons">add_circle</span>
-          <span id="btnAddText">Add Chemical</span>
-        </button>
-      </div>
-
-      <div id="chemicalList">
-        <ul id="listContainer"></ul>
-      </div>
 <!-- Section -->
 <label for="section" id="labelsection">Section:</label>
 <select id="section" required>
@@ -174,7 +164,16 @@
   <option value="VINCA"></option>
   <option value="ZINNIA"></option>
 </datalist>
-   
+        <button onclick="addChemical()" class="action-button">
+          <span class="material-icons">add_circle</span>
+          <span id="btnAddText">Add Chemical</span>
+        </button>
+      </div>
+
+      <div id="chemicalList">
+        <ul id="listContainer"></ul>
+      </div>
+ 
       <button
         onclick="submitData()"
         class="action-button"
