@@ -595,6 +595,13 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZ
     formData.append("barcode", entry.barcode);
     formData.append("amount", entry.amount);  // make sure you use "amount" here (not quantity)
     formData.append("unit", entry.unit);
+        fetch(scriptURL, {
+      method: "POST",
+      mode: "no-cors", // for Google Apps Script CORS
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
+    });
+const formDataTR = new URLSearchParams();
     formDataTR.append("employee", entry.employee);
     formDataTR.append("chemical", entry.product);
     formDataTR.append("barcode", entry.barcode);
@@ -603,13 +610,12 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZ
     formDataTR.append("section", entry.section || "");
     formDataTR.append("bay", entry.bay || "");
     formDataTR.append("crop", entry.crop || "");
-
-    fetch(scriptURL, {
+    fetch(TR_URL, {
       method: "POST",
-      mode: "no-cors", // for Google Apps Script CORS
+      mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData.toString(),
-    });
+      body: formDataTR.toString(),
+    });     
   });
 
   document.getElementById("result").innerText = t.submitSuccess;
