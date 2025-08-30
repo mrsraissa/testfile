@@ -222,6 +222,13 @@
         employeeRequired: "Employee name is required.",
         confirmDelete: "Are you sure you want to remove this chemical?",
         scanAgain: "🔄 Scan Again",
+        section: "Section",
+        bay: "Bay",
+        crop: "Crop",
+        selectSection: "Select section",
+        selectBay: "Select bay",
+        cropPlaceholder: "Start typing crop…",
+        selectMissingPrefix: "Please select: ",
       },
       es: {
         title: "Informe Técnico",
@@ -241,6 +248,13 @@
         employeeRequired: "Se requiere el nombre del empleado.",
         confirmDelete: "¿Estás seguro de eliminar este químico?",
         scanAgain: "🔄 Escanear nuevamente",
+        section: "Sección",
+        bay: "Bay",
+        crop: "Cultivo",
+        selectSection: "Selecciona sección",
+       selectBay: "Selecciona Bay",
+       cropPlaceholder: "Empieza a escribir cultivo…",
+       selectMissingPrefix: "Por favor selecciona: ",
       },
     };
 
@@ -463,7 +477,12 @@ window.addEventListener("load", () => {
 
     function addChemical() {
       const t = getTranslations();
-
+      if (!section) missing.push(t.section);
+      if (!bay)     missing.push(t.bay);
+      if (!crop)    missing.push(t.crop);
+      if (missing.length) {
+      alert(t.selectMissingPrefix + missing.join(", ") + ".");
+      return;
       if (chemicals.length >= MAX_CHEMICALS) {
         alert("You have reached the maximum of 50 chemicals.");
         return;
@@ -534,7 +553,7 @@ const bayEl = document.getElementById("bay");
 const cropEl = document.getElementById("cropInput");
 
 sectionEl.value = "";
-bayEl.innerHTML = '<option value="">Select bay</option>';
+bayEl.innerHTML = `<option value="">${getTranslations().selectBay}</option>`;
 bayEl.disabled = true;
 cropEl.value = "";
 
@@ -623,6 +642,16 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZ
       document.getElementById("pageTitle").innerText = t.title;
 
       document.title = t.title;
+
+      // New: localize Section/Bay/Crop labels & placeholders
+      document.getElementById("labelsection").innerText = t.section + ":";
+      document.getElementById("labelbay").innerText = t.bay + ":";
+      document.getElementById("labelcrop").innerText = t.crop + ":";
+
+// New: localize the first option texts and the crop placeholder
+    document.getElementById("section").options[0].text = t.selectSection;
+    document.getElementById("bay").options[0].text = t.selectBay;
+    document.getElementById("cropInput").placeholder = t.cropPlaceholder;
     };
 
    
