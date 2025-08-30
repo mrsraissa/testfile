@@ -229,6 +229,9 @@
         selectBay: "Select bay",
         cropPlaceholder: "Start typing crop…",
         selectMissingPrefix: "Please select: ",
+        unitRequired: "Please enter a valid unit.",
+        amountRequired: "Please enter an amount.",
+        productRequired: "Please scan a chemical first.",
       },
       es: {
         title: "Informe Técnico",
@@ -252,10 +255,13 @@
         bay: "Bay",
         crop: "Cultivo",
         selectSection: "Selecciona sección",
-       selectBay: "Selecciona Bay",
-       cropPlaceholder: "Empieza a escribir cultivo…",
-       selectMissingPrefix: "Por favor selecciona: ",
-      },
+        selectBay: "Selecciona Bay",
+        cropPlaceholder: "Empieza a escribir cultivo…",
+        selectMissingPrefix: "Por favor selecciona: ",
+        unitRequired: "Ingresa una unidad válida.",
+        amountRequired: "Ingresa una cantidad.",
+        productRequired: "Primero escanea un químico.",
+        },
     };
 
     function getTranslations() {
@@ -499,9 +505,10 @@ const t = getTranslations();
       return;
     }
   }
-        if (!lastProductName || !amount || !unit) {
-    alert(t.scanInvalid);
-    return;
+        if (!lastProductName) { alert(t.productRequired); return; }
+if (!amount)         { alert(t.amountRequired);  return; }
+if (!unit)           { alert(t.unitRequired);    return; }
+
   }
 
       // read current Section / Bay / Crop (uppercase crop to match your list)
