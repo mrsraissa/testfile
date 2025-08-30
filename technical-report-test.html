@@ -586,13 +586,23 @@ lastBarcode = "";
       }
       
 const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZJvLWoJLjt07RE8W8oELcGU7MDQf2HhcsrEJQWnXZr8Opyc/exec";
-       chemicals.forEach((entry) => {
+       const TR_URL = "https://script.google.com/macros/s/AKfycbzoZcNg_UDTO3IHK3XVJc3KnMX9u99Iq1PSb7tpvFtr3All5WTzlKitx43sk9_RurQP8g/exec";
+      
+      chemicals.forEach((entry) => {
     const formData = new URLSearchParams();
     formData.append("employee", entry.employee);
     formData.append("chemical", entry.product);
     formData.append("barcode", entry.barcode);
     formData.append("amount", entry.amount);  // make sure you use "amount" here (not quantity)
     formData.append("unit", entry.unit);
+    formDataTR.append("employee", entry.employee);
+    formDataTR.append("chemical", entry.product);
+    formDataTR.append("barcode", entry.barcode);
+    formDataTR.append("amount", entry.amount);
+    formDataTR.append("unit", entry.unit);
+    formDataTR.append("section", entry.section || "");
+    formDataTR.append("bay", entry.bay || "");
+    formDataTR.append("crop", entry.crop || "");
 
     fetch(scriptURL, {
       method: "POST",
