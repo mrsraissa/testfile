@@ -637,6 +637,7 @@ const formDataTR = new URLSearchParams();
     formDataTR.append("crop", entry.crop || "");
     formDataTR.append("applicationType", entry.applicationType);
     formDataTR.append("Application_Type", entry.applicationType);
+    console.log("TR payload:", Object.fromEntries(formDataTR)); // ← check DevTools Console    
     fetch(TR_URL, {
       method: "POST",
       mode: "no-cors",
