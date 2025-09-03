@@ -250,34 +250,46 @@
     }
 
     function handleBarcode(result) {
-      const t = getTranslations();
-      try { if (codeReader) codeReader.reset(); } catch(_) {}
-      if (currentStream) {
-        try { currentStream.getTracks().forEach((track) => track.stop()); } catch(_) {}
-      }
-      const barcode = result.text;
-      lastBarcode = barcode;
-      fetch(
-        `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(barcode)}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
-          if (data.status === "found") {
-            lastProductName = data.product;
-            document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
-          } else {
-            lastProductName = "";
-            document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
-          }
-          document.getElementById("scannerUI").style.display = "none";
-          document.querySelector(".scanner-overlay").style.display = "none";
-        })
-        .catch(() => {
-          document.getElementById("productInfo").innerHTML = t.errorCheck;
-        });
-    }
+  const t = getTranslations();
 
+  // stop scanner cleanly
+  try { if (codeReader && typeof codeReader.reset === 'function') codeReader.reset(); } catch(_) {}
+  try { if (currentStream) currentStream.getTracks().forEach(tr => tr.stop()); } catch(_) {}
+
+  const barcode = result.text;
+  lastBarcode = barcode;
+
+  fetch(
+    `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(barcode)}`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+      if (data.status === "found") {
+        lastProductName = data.product;
+        document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
+      } else {
+        lastProductName = "";
+        document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+      }
+
+      // ✅ Keep the form visible:
+      // DO NOT hide #scannerUI here.
+      // Just hide the camera overlay and video so they can fill the form.
+      const overlay = document.querySelector(".scanner-overlay");
+      if (overlay) overlay.style.display = "none";
+      const video = document.getElementById("preview");
+      if (video) video.style.display = "none"; // optional: hide video after scan
+    })
+    .catch(() => {
+      document.getElementById("productInfo").innerHTML = t.errorCheck;
+      // keep form open for manual entry if needed
+      const overlay = document.querySelector(".scanner-overlay");
+      if (overlay) overlay.style.display = "none";
+      const video = document.getElementById("preview");
+      if (video) video.style.display = "none";
+    });
+}
     let codeReader;
     let lastProductName = "";
     let lastBarcode = "";
@@ -515,8 +527,7 @@
         formData.append("section", entry.section || "");
         formData.append("bay", entry.bay || "");
         formData.append("crop", entry.crop || "");
-        formData.append("applicationType", entry.applicationType || "");
-        fetch(scriptURL, {
+          fetch(scriptURL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
