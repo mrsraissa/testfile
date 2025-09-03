@@ -535,7 +535,7 @@
         });
 
         // Only send to REI monitor sheet if Spray or Sprench
-        if (entry.applicationType === "Spray" || entry.applicationType === "Sprench") {
+        if (entry.applicationType === "Spray" || entry.applicationType === "Sprench" || entry.applicationType === "Drench") {
           const formDataTR = new URLSearchParams();
           formDataTR.append("employee", entry.employee);
           formDataTR.append("chemical", entry.product);
