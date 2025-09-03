@@ -26,15 +26,22 @@
       display: none;
     }
     @keyframes pulse-border {
-      0% { box-shadow: 0 0 0 0 rgba(50,205,50,.7); }
-      70%{ box-shadow: 0 0 0 10px rgba(50,205,50,0); }
-      100%{box-shadow: 0 0 0 0 rgba(50,205,50,0);}
+      0% {
+        box-shadow: 0 0 0 0 rgba(50, 205, 50, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(50, 205, 50, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(50, 205, 50, 0);
+      }
     }
     .icon-btn{ background:none; border:none; cursor:pointer; margin-left:8px; font-size:16px; padding:0; }
-    .icon-btn:hover{ opacity:.85; }
+.icon-btn:hover{ opacity:.85; }
   </style>
 </head>
 <body>
+    
   <div class="page-wrapper">
     <header class="header">
       <div class="icon-title">
@@ -43,32 +50,73 @@
       </div>
     </header>
 
-    <main class="content" style="flex:1; display:flex; flex-direction:column; align-items:center; padding:80px 20px 120px; overflow-y:visible; position:relative;">
+    <main
+      class="content"
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 80px 20px 120px;
+        overflow-y: visible;
+        position: relative;
+      "
+    >
       <button
         id="startScanBtn"
         onclick="openScanner()"
-        style="padding: 40px; font-size: 24px; border-radius: 12px; background-color: #66bb6a; color: black; border: none; box-shadow: 0 4px 8px rgba(0,0,0,.2); display:flex; align-items:center; gap:12px;">
+        style="
+          padding: 40px;
+          font-size: 24px;
+          border-radius: 12px;
+          background-color: #66bb6a;
+          color: black;
+          border: none;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        "
+      >
         <span class="material-icons">qr_code_scanner</span> <span id="btnScanText">Scan Chemical</span>
       </button>
 
-      <div id="scannerUI" style="display:none">
+      <div id="scannerUI" style="display: none">
         <div style="position: relative; width: 100%; max-width: 400px">
           <video id="preview" playsinline style="width: 100%; border-radius: 12px"></video>
           <div class="scanner-overlay"></div>
 
           <button
             onclick="toggleFlash()"
-            style="position:absolute; top:10px; right:10px; padding:10px; background:rgba(0,0,0,.6); color:#ffd600; border:none; border-radius:50%; font-size:20px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,.3);">
+            style="
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              padding: 10px;
+              background: rgba(0, 0, 0, 0.6);
+              color: #ffd600;
+              border: none;
+              border-radius: 50%;
+              font-size: 20px;
+              cursor: pointer;
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            "
+          >
             🔦
           </button>
         </div>
 
-        <div id="productInfo" style="font-size:2em; font-weight:bold; text-align:center; color:#004d00">&nbsp;</div>
+        <div
+          id="productInfo"
+          style="font-size: 2em; font-weight: bold; text-align: center; color: #004d00"
+        >
+          &nbsp;
+        </div>
 
         <label for="amount" id="labelamount">Amount:</label>
         <input type="number" id="amount" name="amount" required />
 
-        <!-- UNIT -->
+        <!-- ADDED UNIT SELECT -->
         <label for="unit" id="labelunit">Unit:</label>
         <select id="unit" required>
           <option id="optionSelectUnit" value="">Select unit</option>
@@ -79,49 +127,53 @@
           <option value="g">g</option>
           <option value="EA">EA</option>
         </select>
+ <!-- Application type -->
+      <label for="applicationType" id="labelApplicationType">Application type:</label>
+      <select id="applicationType" required>
+      <option id="optionSelectApplicationType" value="">Select application type</option>  
+      <option id="optionSpray"   value="SPRAY">Spray</option>
+      <option id="optionSprench" value="SPRENCH">Sprench</option>
+      <option id="optionDrench"  value="DRENCH">Drench</option>
+    </select>
+        
+<!-- Section -->
+<label for="section" id="labelsection">Section:</label>
+<select id="section" required>
+  <option value="">Select section</option>
+  <option>1</option>
+  <option>2</option>
+  <option>3</option>
+  <option>4</option>
+  <option>5</option>
+  <option>6</option>
+  <option>7</option>
+  <option>8</option>
+  <option>9</option>
+  <option>10</option>
+</select>
 
-        <!-- APPLICATION TYPE (NEW) -->
-        <label for="applicationType" id="labelApplicationType">Application type:</label>
-        <select id="applicationType" required>
-          <option id="optionSelectApplicationType" value="">Select application type</option>
-          <option value="Spray">Spray</option>
-          <option value="Sprench">Sprench</option>
-          <option value="Drench">Drench</option>
-        </select>
+<!-- Bay (populates when Section is chosen) -->
+<label for="bay" id="labelbay">Bay:</label>
+<select id="bay" required>
+  <option value="">Select bay</option>
+</select>
 
-        <!-- Section -->
-        <label for="section" id="labelsection">Section:</label>
-        <select id="section" required>
-          <option value="">Select section</option>
-          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-          <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
-        </select>
+<!-- Crop with type-ahead -->
+<label for="cropInput" id="labelcrop">Crop:</label>
+<input id="cropInput" list="cropList" placeholder="Start typing crop…" />
 
-        <!-- Bay -->
-        <label for="bay" id="labelbay">Bay:</label>
-        <select id="bay" required>
-          <option value="">Select bay</option>
-        </select>
-
-        <!-- Crop with type-ahead -->
-        <label for="cropInput" id="labelcrop">Crop:</label>
-        <input id="cropInput" list="cropList" placeholder="Start typing crop…" />
-        <datalist id="cropList">
-          <option value="PETUNIA"></option>
-          <option value="CALI"></option>
-          <option value="COLEOUS"></option>
-          <option value="BEGONIA"></option>
-          <option value="POINSETTIA"></option>
-          <option value="MUM"></option>
-          <option value="TORENIA"></option>
-          <option value="IMPATIANS"></option>
-          <option value="VINCA"></option>
-          <option value="ZINNIA"></option>
-        </datalist>
-
-        <!-- Hidden photo fallback for scanning -->
-        <input id="imageInput" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
-
+<datalist id="cropList">
+  <option value="PETUNIA"></option>
+  <option value="CALI"></option>
+  <option value="COLEOUS"></option>
+  <option value="BEGONIA"></option>
+  <option value="POINSETTIA"></option>
+  <option value="MUM"></option>
+  <option value="TORENIA"></option>
+  <option value="IMPATIANS"></option>
+  <option value="VINCA"></option>
+  <option value="ZINNIA"></option>
+</datalist>
         <button onclick="addChemical()" class="action-button">
           <span class="material-icons">add_circle</span>
           <span id="btnAddText">Add Chemical</span>
@@ -131,11 +183,23 @@
       <div id="chemicalList">
         <ul id="listContainer"></ul>
       </div>
-
+ 
       <button
         onclick="submitData()"
         class="action-button"
-        style="margin-top:20px; align-self:center; padding:20px 30px; font-size:20px; border-radius:12px; background-color:#66bb6a; color:white; display:flex; align-items:center; gap:10px;">
+        style="
+          margin-top: 20px;
+          align-self: center;
+          padding: 20px 30px;
+          font-size: 20px;
+          border-radius: 12px;
+          background-color: #66bb6a;
+          color: white;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        "
+      >
         <span class="material-icons">send</span> <span id="btnSubmitText">Submit</span>
       </button>
       <div id="result"></div>
@@ -176,10 +240,13 @@
         unitRequired: "Please enter a valid unit.",
         amountRequired: "Please enter an amount.",
         productRequired: "Please scan a chemical first.",
-        // NEW for application type
         applicationType: "Application type",
         selectApplicationType: "Select application type",
-        applicationTypeRequired: "Please select an application type."
+        optSpray: "Spray",
+        optSprench: "Sprench",
+        optDrench: "Drench",
+        applicationTypeRequired: "Please select an application type.",
+
       },
       es: {
         title: "Informe Técnico",
@@ -209,11 +276,10 @@
         unitRequired: "Ingresa una unidad válida.",
         amountRequired: "Ingresa una cantidad.",
         productRequired: "Primero escanea un químico.",
-        // NEW
         applicationType: "Tipo de aplicación",
         selectApplicationType: "Selecciona tipo de aplicación",
-        applicationTypeRequired: "Selecciona el tipo de aplicación."
-      },
+        applicationTypeRequired: "Selecciona un tipo de aplicación.",
+        },
     };
 
     function getTranslations() {
@@ -222,8 +288,7 @@
     }
 
     function fallbackToFileInput() {
-      const input = document.getElementById("imageInput");
-      if (input) input.style.display = "block";
+      document.getElementById("imageInput").style.display = "block";
       document.getElementById("productInfo").innerText = "📷 Tap to scan or upload image";
     }
 
@@ -250,46 +315,36 @@
     }
 
     function handleBarcode(result) {
-  const t = getTranslations();
-
-  // stop scanner cleanly
-  try { if (codeReader && typeof codeReader.reset === 'function') codeReader.reset(); } catch(_) {}
-  try { if (currentStream) currentStream.getTracks().forEach(tr => tr.stop()); } catch(_) {}
-
-  const barcode = result.text;
-  lastBarcode = barcode;
-
-  fetch(
-    `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(barcode)}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
-      if (data.status === "found") {
-        lastProductName = data.product;
-        document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
-      } else {
-        lastProductName = "";
-        document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+      const t = getTranslations();
+      codeReader.reset();
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
       }
+      const barcode = result.text;
+      lastBarcode = barcode;
+      fetch(
+        `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(
+          barcode
+        )}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+          if (data.status === "found") {
+            lastProductName = data.product;
+            document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
+          } else {
+            lastProductName = "";
+            document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+          }
+          document.getElementById("scannerUI").style.display = "none";
+          document.querySelector(".scanner-overlay").style.display = "none";
+        })
+        .catch(() => {
+          document.getElementById("productInfo").innerHTML = t.errorCheck;
+        });
+    }
 
-      // ✅ Keep the form visible:
-      // DO NOT hide #scannerUI here.
-      // Just hide the camera overlay and video so they can fill the form.
-      const overlay = document.querySelector(".scanner-overlay");
-      if (overlay) overlay.style.display = "none";
-      const video = document.getElementById("preview");
-      if (video) video.style.display = "none"; // optional: hide video after scan
-    })
-    .catch(() => {
-      document.getElementById("productInfo").innerHTML = t.errorCheck;
-      // keep form open for manual entry if needed
-      const overlay = document.querySelector(".scanner-overlay");
-      if (overlay) overlay.style.display = "none";
-      const video = document.getElementById("preview");
-      if (video) video.style.display = "none";
-    });
-}
     let codeReader;
     let lastProductName = "";
     let lastBarcode = "";
@@ -299,50 +354,57 @@
     const chemicals = [];
     const MAX_CHEMICALS = 50;
 
-    // --- Crop datalist behavior ---
-    window.addEventListener("load", () => {
-      const cropInput = document.getElementById("cropInput");
-      if (!cropInput) return;
+// --- Make the Crop datalist open while typing ---
+window.addEventListener("load", () => {
+  const cropInput = document.getElementById("cropInput");
+  if (!cropInput) return;
 
-      cropInput.addEventListener("input", () => {
-        const pos = cropInput.selectionStart;
-        cropInput.value = cropInput.value.toUpperCase();
-        cropInput.setSelectionRange(pos, pos);
-        if (typeof cropInput.showPicker === "function") {
-          setTimeout(() => cropInput.showPicker(), 0);
-        }
-      });
+  // Keep text uppercase so it matches your options
+  cropInput.addEventListener("input", () => {
+    const pos = cropInput.selectionStart;
+    cropInput.value = cropInput.value.toUpperCase();
+    cropInput.setSelectionRange(pos, pos);
 
-      const tryOpen = () => {
-        if (typeof cropInput.showPicker === "function") cropInput.showPicker();
-      };
-      cropInput.addEventListener("focus", tryOpen);
-      cropInput.addEventListener("keydown", () => setTimeout(tryOpen, 0));
-    });
+    // Try to open the native datalist dropdown on every keystroke
+    if (typeof cropInput.showPicker === "function") {
+      // show after value updates
+      setTimeout(() => cropInput.showPicker(), 0);
+    }
+  });
 
-    // Section → Bay options
-    const SECTION_BAYS = {
-      "1": ["B01","B02","B03","B04","B05","B06"],
-      "2": ["B02","B03","B04","B05","B06","B07","B08","B09","B10","B11","B12","B13","B14","B15","B16"]
-    };
+  // Also open on focus and first key press
+  const tryOpen = () => {
+    if (typeof cropInput.showPicker === "function") cropInput.showPicker();
+  };
+  cropInput.addEventListener("focus", tryOpen);
+  cropInput.addEventListener("keydown", () => setTimeout(tryOpen, 0));
+});
 
-    window.addEventListener("load", () => {
-      const sectionEl = document.getElementById("section");
-      const bayEl = document.getElementById("bay");
-      if (!sectionEl || !bayEl) return;
 
-      bayEl.disabled = true;
 
-      sectionEl.addEventListener("change", () => {
-        const t = getTranslations();
-        const bays = SECTION_BAYS[sectionEl.value] || [];
-        bayEl.innerHTML = '<option value="">' + t.selectBay + '</option>' +
-          bays.map(b => `<option value="${b}">${b}</option>`).join("");
-        bayEl.disabled = bays.length === 0;
-      });
-    });
+    
+// Section → Bay options (expand later as needed)
+const SECTION_BAYS = {
+  "1": ["B01","B02","B03","B04","B05","B06"],
+  "2": ["B02","B03","B04","B05","B06","B07","B08","B09","B10","B11","B12","B13","B14","B15","B16"]
+};
 
-    // 🆕 Hardened scanner opener with fallback
+// Hook Section change → populate Bay
+window.addEventListener("load", () => {
+  const sectionEl = document.getElementById("section");
+  const bayEl = document.getElementById("bay");
+  if (!sectionEl || !bayEl) return;
+
+  bayEl.disabled = true;
+
+  sectionEl.addEventListener("change", () => {
+    const bays = SECTION_BAYS[sectionEl.value] || [];
+    bayEl.innerHTML = '<option value="">Select bay</option>' +
+      bays.map(b => `<option value="${b}">${b}</option>`).join("");
+    bayEl.disabled = bays.length === 0;
+  });
+});
+
     async function openScanner() {
       const t = getTranslations();
 
@@ -350,47 +412,61 @@
       document.getElementById("startScanBtn").style.display = "none";
       document.getElementById("scannerUI").style.display = "flex";
 
-      // stop any previous session
-      try {
-        if (currentStream) currentStream.getTracks().forEach(tr => tr.stop());
-        if (codeReader && typeof codeReader.reset === 'function') codeReader.reset();
-      } catch (_) {}
-
-      const supported = navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function";
-      if (!supported) {
-        document.getElementById("productInfo").innerHTML = "📷 Camera not available. Choose a photo to scan.";
-        const fileInput = document.getElementById("imageInput");
-        if (fileInput) fileInput.style.display = "block";
-        return;
-      }
-
       try {
         const constraints = {
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         };
 
         previewElem = document.getElementById("preview");
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         currentStream = stream;
         previewElem.srcObject = stream;
-        await previewElem.play();
+        previewElem.play();
         document.querySelector(".scanner-overlay").style.display = "block";
 
         codeReader = new ZXing.BrowserMultiFormatReader();
-        const result = await codeReader.decodeOnceFromVideoDevice(null, previewElem);
+        codeReader
+          .decodeOnceFromVideoDevice(null, previewElem)
+          .then((result) => {
+            codeReader.reset();
+            const barcode = result.text;
+            lastBarcode = barcode;
 
-        // success → stop camera & proceed
-        try { codeReader.reset(); } catch(_) {}
-        try { if (currentStream) currentStream.getTracks().forEach(tr => tr.stop()); } catch(_) {}
-        handleBarcode(result);
-
+            fetch(
+              `https://script.google.com/macros/s/AKfycbylVi6R5O2weg4d0gDdCjRz3imuBbZBKzsEJKjvYlbPrvNeLZ-7LZ1l4xiahUe6MI8S/exec?barcode=${encodeURIComponent(
+                barcode
+              )}`
+            )
+              .then((res) => res.json())
+              .then((data) => {
+                const scanAgainBtn = `<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+                if (data.status === "found") {
+                  lastProductName = data.product;
+                  document.getElementById("productInfo").innerHTML = `✅ <strong>${lastProductName}</strong>${scanAgainBtn}`;
+                } else {
+                  lastProductName = "";
+                  document.getElementById("productInfo").innerHTML = `${t.notFound}${scanAgainBtn}`;
+                }
+              })
+              .catch(() => {
+                lastProductName = "";
+                document.getElementById("productInfo").innerHTML = `${t.errorCheck}<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+              });
+          })
+          .catch((err) => {
+            console.error(err);
+            document.getElementById("productInfo").innerHTML = `${t.errorCamera}<br><button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">${t.scanAgain}</button>`;
+          });
       } catch (err) {
-        console.error("Camera error:", err);
-        const fileInput = document.getElementById("imageInput");
-        document.getElementById("productInfo").innerHTML = t.errorCamera + " — switching to photo upload.";
-        if (fileInput) fileInput.style.display = "block";
-        document.querySelector(".scanner-overlay").style.display = "none";
+        console.error(err);
+        document.getElementById("productInfo").innerHTML = `${t.errorCamera}<br>
+      <button onclick="rescanChemical()" style="margin-top: 12px; padding: 8px 16px; font-size: 15px; border: none; border-radius: 8px; background-color: #66BB6A; color: white; cursor: pointer;">
+        ${t.scanAgain}
+      </button>`;
       }
     }
 
@@ -416,6 +492,7 @@
       document.getElementById("startScanBtn").style.display = "block";
       document.getElementById("productInfo").innerHTML = "";
     }
+  
 
     function rescanChemical() {
       document.getElementById("amount").value = "";
@@ -423,85 +500,106 @@
     }
 
     function addChemical() {
-      const t = getTranslations();
+const t = getTranslations();
 
-      if (chemicals.length >= MAX_CHEMICALS) {
-        alert("You have reached the maximum of 50 chemicals.");
-        return;
-      }
+  // Limit
+  if (chemicals.length >= MAX_CHEMICALS) {
+    alert("You have reached the maximum of 50 chemicals.");
+    return;
+  }
 
-      const amount = (document.getElementById("amount").value || '').trim();
-      const unit   = document.getElementById("unit").value;
-      const appType = document.getElementById("applicationType").value;
+  // Amount / Unit
+  const amount = document.getElementById("amount").value.trim();
+  const unit   = document.getElementById("unit").value;
+  const applicationType = document.getElementById("applicationType").value;
+  if (!applicationType) { alert(t.applicationTypeRequired); return; }
+     
+  // Employee
+  let employee = localStorage.getItem("employeeName");
+  if (!employee) {
+    employee = prompt("Enter your name:");
+    if (employee) {
+      localStorage.setItem("employeeName", employee);
+    } else {
+      alert(t.employeeRequired);
+      return;
+    }
+  }
+        if (!lastProductName) { alert(t.productRequired); return; }
+if (!amount)         { alert(t.amountRequired);  return; }
+if (!unit)           { alert(t.unitRequired);    return; }
 
-      let employee = localStorage.getItem("employeeName");
-      if (!employee) {
-        employee = prompt("Enter your name:");
-        if (employee) localStorage.setItem("employeeName", employee);
-        else { alert(t.employeeRequired); return; }
-      }
+ 
+      // read current Section / Bay / Crop (uppercase crop to match your list)
+const section = (document.getElementById("section")?.value || "").trim();
+const bay     = (document.getElementById("bay")?.value || "").trim();
+const crop    = (document.getElementById("cropInput")?.value || "").trim().toUpperCase();
+       // Require Section/Bay/Crop (translated)
+  const missing = [];
+  if (!section) missing.push(t.section);
+  if (!bay)     missing.push(t.bay);
+  if (!crop)    missing.push(t.crop);
+  if (missing.length) {
+    alert(t.selectMissingPrefix + missing.join(", ") + ".");
+    return;
+  }
 
-      if (!lastProductName) { alert(t.productRequired); return; }
-      if (!amount)         { alert(t.amountRequired);  return; }
-      if (!unit)           { alert(t.unitRequired);    return; }
-      if (!appType)        { alert(t.applicationTypeRequired); return; }
+// (optional) require them before adding — uncomment if you want to enforce
+// if (!section || !bay || !crop) { alert("Select Section, Bay and Crop."); return; }
 
-      const section = (document.getElementById("section")?.value || "").trim();
-      const bay     = (document.getElementById("bay")?.value || "").trim();
-      const crop    = (document.getElementById("cropInput")?.value || "").trim().toUpperCase();
+chemicals.push({
+  product: lastProductName,
+  amount,
+  unit,
+  employee,
+  barcode: lastBarcode,
+  section,
+  bay,
+  crop,
+  applicationType 
+});
 
-      const missing = [];
-      if (!section) missing.push(t.section);
-      if (!bay)     missing.push(t.bay);
-      if (!crop)    missing.push(t.crop);
-      if (missing.length) {
-        alert(t.selectMissingPrefix + missing.join(", ") + ".");
-        return;
-      }
-
-      chemicals.push({
-        product: lastProductName,
-        amount,
-        unit,
-        employee,
-        barcode: lastBarcode,
-        section,
-        bay,
-        crop,
-        applicationType: appType
-      });
-
+ 
       const li = document.createElement("li");
       const index = chemicals.length - 1;
+      const appTextMap = { "SPRAY": t.optSpray, "SPRENCH": t.optSprench, "DRENCH": t.optDrench };
+
       li.innerHTML = `<span>
-        ${lastProductName} — ${amount} ${unit}
-        <small style="opacity:.8; margin-left:8px;">${appType} · S${section || '-'}${bay || '-'}/${crop || '-'}</small>
-        <button class="icon-btn" onclick="editChemical(${index})" title="Edit">✏️</button>
-        <button class="icon-btn" onclick="removeChemical(${index})" title="Remove">❌</button>
-      </span>`;
+  ${lastProductName} — ${amount} ${unit}
+  <small style="opacity:.8; margin-left:8px;">S${section || '-'}${bay || '-'}/${crop || '-'}</small>
+  <small style="opacity:.8; margin-left:8px;">[${appTextMap[applicationType]}]</small>
+  <button class="icon-btn" onclick="editChemical(${index})" title="Edit">✏️</button>
+  <button class="icon-btn" onclick="removeChemical(${index})" title="Remove">❌</button>
+</span>`;
+
       li.style.justifyContent = "space-between";
       li.style.alignItems = "center";
       li.style.padding = "8px 0";
       document.getElementById("listContainer").appendChild(li);
 
-      // Reset UI bits
-      document.getElementById("scannerUI").style.display = "none";
-      document.querySelector(".scanner-overlay").style.display = "none";
-      document.getElementById("startScanBtn").style.display = "block";
-      document.getElementById("amount").value = "";
-      document.getElementById("unit").value = "";
-      document.getElementById("applicationType").value = "";
+    document.getElementById("scannerUI").style.display = "none";
+document.querySelector(".scanner-overlay").style.display = "none";
+document.getElementById("startScanBtn").style.display = "block";
 
-      const sectionEl = document.getElementById("section");
-      const bayEl = document.getElementById("bay");
-      const cropEl = document.getElementById("cropInput");
-      sectionEl.value = "";
-      bayEl.innerHTML = `<option value="">${getTranslations().selectBay}</option>`;
-      bayEl.disabled = true;
-      cropEl.value = "";
+// clear amount + unit
+document.getElementById("amount").value = "";
+document.getElementById("unit").value = "";
+document.getElementById("applicationType").value = "";
 
-      lastProductName = "";
-      lastBarcode = "";
+// clear Section / Bay / Crop and re-disable Bay until a section is picked
+const sectionEl = document.getElementById("section");
+const bayEl = document.getElementById("bay");
+const cropEl = document.getElementById("cropInput");
+
+sectionEl.value = "";
+bayEl.innerHTML = `<option value="">${getTranslations().selectBay}</option>`;
+bayEl.disabled = true;
+cropEl.value = "";
+
+// clear last scanned values
+lastProductName = "";
+lastBarcode = "";
+
     }
 
     function submitData() {
@@ -511,69 +609,57 @@
         alert(t.submitEmpty);
         return;
       }
-
-      // endpoints
-      const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZJvLWoJLjt07RE8W8oELcGU7MDQf2HhcsrEJQWnXZr8Opyc/exec";
-      const TR_URL    = "https://script.google.com/macros/s/AKfycbzoZcNg_UDTO3IHK3XVJc3KnMX9u99Iq1PSb7tpvFtr3All5WTzlKitx43sk9_RurQP8g/exec";
-
+      
+const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZJvLWoJLjt07RE8W8oELcGU7MDQf2HhcsrEJQWnXZr8Opyc/exec";
+       const TR_URL = "https://script.google.com/macros/s/AKfycbzoZcNg_UDTO3IHK3XVJc3KnMX9u99Iq1PSb7tpvFtr3All5WTzlKitx43sk9_RurQP8g/exec";
+      
       chemicals.forEach((entry) => {
-        // Always log to your main sheet
-        const formData = new URLSearchParams();
-        formData.append("employee", entry.employee);
-        formData.append("chemical", entry.product);
-        formData.append("barcode", entry.barcode);
-        formData.append("amount", entry.amount);
-        formData.append("unit", entry.unit);
-        formData.append("section", entry.section || "");
-        formData.append("bay", entry.bay || "");
-        formData.append("crop", entry.crop || "");
-          fetch(scriptURL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formData.toString(),
-        });
+    const formData = new URLSearchParams();
+    formData.append("employee", entry.employee);
+    formData.append("chemical", entry.product);
+    formData.append("barcode", entry.barcode);
+    formData.append("amount", entry.amount);  // make sure you use "amount" here (not quantity)
+    formData.append("unit", entry.unit);
+        fetch(scriptURL, {
+      method: "POST",
+      mode: "no-cors", // for Google Apps Script CORS
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
+    });
+const formDataTR = new URLSearchParams();
+    formDataTR.append("employee", entry.employee);
+    formDataTR.append("chemical", entry.product);
+    formDataTR.append("barcode", entry.barcode);
+    formDataTR.append("amount", entry.amount);
+    formDataTR.append("unit", entry.unit);
+    formDataTR.append("section", entry.section || "");
+    formDataTR.append("bay", entry.bay || "");
+    formDataTR.append("crop", entry.crop || "");
+    formDataTR.append("applicationType", entry.applicationType);
+    fetch(TR_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formDataTR.toString(),
+    });     
+  });
 
-        // Only send to REI monitor sheet if Spray or Sprench
-        if (entry.applicationType === "Spray" || entry.applicationType === "Sprench" || entry.applicationType === "Drench") {
-          const formDataTR = new URLSearchParams();
-          formDataTR.append("employee", entry.employee);
-          formDataTR.append("chemical", entry.product);
-          formDataTR.append("barcode", entry.barcode);
-          formDataTR.append("amount", entry.amount);
-          formDataTR.append("unit", entry.unit);
-          formDataTR.append("section", entry.section || "");
-          formDataTR.append("bay", entry.bay || "");
-          formDataTR.append("crop", entry.crop || "");
-          formDataTR.append("applicationType", entry.applicationType || "");
-          fetch(TR_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formDataTR.toString(),
-          });
-        }
-      });
-
-      document.getElementById("result").innerText = t.submitSuccess;
-      document.getElementById("listContainer").innerHTML = "";
-      chemicals.length = 0;
-    }
-
+  document.getElementById("result").innerText = t.submitSuccess;
+  document.getElementById("listContainer").innerHTML = "";
+  chemicals.length = 0;
+}
     function editChemical(index) {
       const t = getTranslations();
-      const item = chemicals[index];
 
+      const item = chemicals[index];
       document.getElementById("amount").value = item.amount;
       document.getElementById("unit").value = item.unit;
-      document.getElementById("applicationType").value = item.applicationType || "";
       lastProductName = item.product;
       lastBarcode = item.barcode;
-
+      document.getElementById("applicationType").value = item.applicationType || "";
       document.getElementById("productInfo").innerHTML = `✏️ Editing: <strong>${item.product}</strong>`;
       document.getElementById("scannerUI").style.display = "flex";
       document.getElementById("startScanBtn").style.display = "none";
-
       chemicals.splice(index, 1);
       const list = document.getElementById("listContainer");
       list.removeChild(list.childNodes[index]);
@@ -581,6 +667,7 @@
 
     function removeChemical(index) {
       const t = getTranslations();
+
       if (confirm(t.confirmDelete)) {
         chemicals.splice(index, 1);
         const list = document.getElementById("listContainer");
@@ -605,25 +692,33 @@
       document.getElementById("labelamount").innerText = t.amount;
       document.getElementById("labelunit").innerText = t.unit;
       document.getElementById("optionSelectUnit").innerText = t.selectUnit;
+
       document.getElementById("btnAddText").innerText = t.addChemical;
       document.getElementById("btnSubmitText").innerText = t.submit;
+
       document.getElementById("pageTitle").innerText = t.title;
+
       document.title = t.title;
 
-      // Localize Section/Bay/Crop labels & placeholders
+      // New: localize Section/Bay/Crop labels & placeholders
       document.getElementById("labelsection").innerText = t.section + ":";
       document.getElementById("labelbay").innerText = t.bay + ":";
       document.getElementById("labelcrop").innerText = t.crop + ":";
-      document.getElementById("section").options[0].text = t.selectSection;
-      document.getElementById("bay").options[0].text = t.selectBay;
-      document.getElementById("cropInput").placeholder = t.cropPlaceholder;
 
-      // NEW: localize Application Type
-      document.getElementById("labelApplicationType").innerText = t.applicationType + ":";
-      document.getElementById("optionSelectApplicationType").innerText = t.selectApplicationType;
-    };
+// New: localize the first option texts and the crop placeholder
+    document.getElementById("section").options[0].text = t.selectSection;
+    document.getElementById("bay").options[0].text = t.selectBay;
+    document.getElementById("cropInput").placeholder = t.cropPlaceholder;
 
-    // SW registration unchanged
+// Localize Application Type label + option texts
+    document.getElementById("labelApplicationType").innerText = t.applicationType + ":";
+    document.getElementById("optionSelectApplicationType").innerText = t.selectApplicationType;
+    document.getElementById("optionSpray").innerText   = t.optSpray;
+    document.getElementById("optionSprench").innerText = t.optSprench;
+    document.getElementById("optionDrench").innerText  = t.optDrench;
+   };
+
+   
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker
