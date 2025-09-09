@@ -165,6 +165,14 @@
 <label for="cropInput" id="labelcrop">Crop:</label>
 <input id="cropInput" list="cropList" placeholder="Start typing crop…" />
 
+<!-- ➕ Add this small button next to your input (keeps layout minimal) -->
+<button type="button" id="addCropBtn" class="icon-btn" title="Add crop" style="vertical-align: middle;">➕</button>
+
+<!-- ➕ And this chips container (shows selected crops) -->
+<div id="cropChips" style="display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem;"></div>
+
+<datalist id="cropList">
+
 <datalist id="cropList">
   <option value="ANGELONIA"></option>
 <option value="BEGONIA"></option>
@@ -392,30 +400,68 @@
     const MAX_CHEMICALS = 50;
 
 // --- Make the Crop datalist open while typing ---
+// ===== Multi-crop state (adds crops next to the Crop input) =====
+const cropsSelected = [];
+const MAX_CROPS = 10;
+
+function renderCropChips() {
+  const wrap = document.getElementById("cropChips");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  cropsSelected.forEach((c, idx) => {
+    const chip = document.createElement("span");
+    chip.textContent = c;
+    chip.style.cssText = "padding:.15rem .5rem; border:1px solid #bbb; border-radius:999px; font-size:.9rem; background:#f7f7f7;";
+    const x = document.createElement("button");
+    x.type = "button";
+    x.textContent = "×";
+    x.className = "icon-btn";
+    x.style.marginLeft = ".35rem";
+    x.addEventListener("click", () => {
+      cropsSelected.splice(idx, 1);
+      renderCropChips();
+    });
+    const holder = document.createElement("span");
+    holder.style.cssText = "display:inline-flex; align-items:center;";
+    holder.appendChild(chip);
+    holder.appendChild(x);
+    wrap.appendChild(holder);
+  });
+}
+
+function addCropFromInput() {
+  const input = document.getElementById("cropInput");
+  if (!input) return;
+  const v = (input.value || "").trim().toUpperCase();
+  if (!v) return;
+  if (cropsSelected.includes(v)) { input.value = ""; return; }
+  if (cropsSelected.length >= MAX_CROPS) {
+    alert(`Limit of ${MAX_CROPS} crops per entry.`);
+    return;
+  }
+  cropsSelected.push(v);
+  renderCropChips();
+  input.value = "";
+}
+
+// init: keep uppercase + wire the ➕ button
 window.addEventListener("load", () => {
   const cropInput = document.getElementById("cropInput");
-  if (!cropInput) return;
-
-  // Keep text uppercase so it matches your options
-  cropInput.addEventListener("input", () => {
-    const pos = cropInput.selectionStart;
-    cropInput.value = cropInput.value.toUpperCase();
-    cropInput.setSelectionRange(pos, pos);
-
-    // Try to open the native datalist dropdown on every keystroke
-    if (typeof cropInput.showPicker === "function") {
-      // show after value updates
-      setTimeout(() => cropInput.showPicker(), 0);
-    }
-  });
-
-  // Also open on focus and first key press
-  const tryOpen = () => {
-    if (typeof cropInput.showPicker === "function") cropInput.showPicker();
-  };
-  cropInput.addEventListener("focus", tryOpen);
-  cropInput.addEventListener("keydown", () => setTimeout(tryOpen, 0));
+  const addBtn = document.getElementById("addCropBtn");
+  if (cropInput) {
+    cropInput.addEventListener("input", () => {
+      const pos = cropInput.selectionStart;
+      cropInput.value = cropInput.value.toUpperCase();
+      cropInput.setSelectionRange(pos, pos);
+      if (typeof cropInput.showPicker === "function") setTimeout(() => cropInput.showPicker(), 0);
+    });
+    cropInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); addCropFromInput(); }
+    });
+  }
+  if (addBtn) addBtn.addEventListener("click", addCropFromInput);
 });
+
 
 
 
@@ -579,18 +625,51 @@ if (!unit)           { alert(t.unitRequired);    return; }
 
  
       // read current Section / Bay / Crop (uppercase crop to match your list)
+// read current Section / Bay
 const section = (document.getElementById("section")?.value || "").trim();
 const bay     = (document.getElementById("bay")?.value || "").trim();
-const crop    = (document.getElementById("cropInput")?.value || "").trim().toUpperCase();
-       // Require Section/Bay/Crop (translated)
-  const missing = [];
-  if (!section) missing.push(t.section);
-  if (!bay)     missing.push(t.bay);
-  if (!crop)    missing.push(t.crop);
-  if (missing.length) {
-    alert(t.selectMissingPrefix + missing.join(", ") + ".");
-    return;
-  }
+
+// Determine crops: prefer chips; if none, fall back to the single input value
+const cropInputVal = (document.getElementById("cropInput")?.value || "").trim().toUpperCase();
+const crops = (cropsSelected.length ? [...cropsSelected] : (cropInputVal ? [cropInputVal] : []));
+
+// Require Section/Bay/Crop(s)
+const missing = [];
+if (!section) missing.push(t.section);
+if (!bay)     missing.push(t.bay);
+if (!crops.length) missing.push(t.crop);
+if (missing.length) {
+  alert(t.selectMissingPrefix + missing.join(", ") + ".");
+  return;
+}
+
+// Store ONE chemical entry with MANY crops (fan-out happens on submit)
+chemicals.push({
+  product: lastProductName,
+  amount,
+  unit,
+  employee,
+  barcode: lastBarcode,
+  section,
+  bay,
+  crops,                 // <-- array now
+  applicationType 
+});
+
+// UI list row text (show crop count to avoid long lines)
+const li = document.createElement("li");
+const index = chemicals.length - 1;
+const appTextMap = { "SPRAY": t.optSpray, "SPRENCH": t.optSprench, "DRENCH": t.optDrench };
+const cropPreview = crops.length === 1 ? crops[0] : `${crops.length} crops`;
+
+li.innerHTML = `<span>
+  ${lastProductName} — ${amount} ${unit}
+  <small style="opacity:.8; margin-left:8px;">S${section || '-'}${bay || '-'}/${cropPreview}</small>
+  <small style="opacity:.8; margin-left:8px;">[${appTextMap[applicationType]}]</small>
+  <button class="icon-btn" onclick="editChemical(${index})" title="Edit">✏️</button>
+  <button class="icon-btn" onclick="removeChemical(${index})" title="Remove">❌</button>
+</span>`;
+
 
 // (optional) require them before adding — uncomment if you want to enforce
 // if (!section || !bay || !crop) { alert("Select Section, Bay and Crop."); return; }
@@ -633,6 +712,9 @@ document.getElementById("startScanBtn").style.display = "block";
 document.getElementById("amount").value = "";
 document.getElementById("unit").value = "";
 document.getElementById("applicationType").value = "";
+document.getElementById("cropInput").value = "";
+cropsSelected.length = 0;
+renderCropChips();      
 
 // clear Section / Bay / Crop and re-disable Bay until a section is picked
 const sectionEl = document.getElementById("section");
@@ -675,45 +757,70 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbyvdp7PZZyiStBk5UV3aZ
       body: formData.toString(),
     });
 const formDataTR = new URLSearchParams();
-    formDataTR.append("employee", entry.employee);
-    formDataTR.append("chemical", entry.product);
-    formDataTR.append("barcode", entry.barcode);
-    formDataTR.append("amount", entry.amount);
-    formDataTR.append("unit", entry.unit);
-    formDataTR.append("section", entry.section || "");
-    formDataTR.append("bay", entry.bay || "");
-    formDataTR.append("crop", entry.crop || "");
-    formDataTR.append("applicationType", entry.applicationType);
-    formDataTR.append("Application_Type", entry.applicationType);
-    console.log("TR payload:", Object.fromEntries(formDataTR)); // ← check DevTools Console    
-    fetch(TR_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formDataTR.toString(),
-    });     
+    entry.crops || []).forEach((cropName) => {
+  const formDataTR = new URLSearchParams();
+  formDataTR.append("employee", entry.employee);
+  formDataTR.append("chemical", entry.product);
+  formDataTR.append("barcode", entry.barcode);
+  formDataTR.append("amount", entry.amount);
+  formDataTR.append("unit", entry.unit);
+  formDataTR.append("section", entry.section || "");
+  formDataTR.append("bay", entry.bay || "");
+  formDataTR.append("crop", cropName || "");
+  formDataTR.append("applicationType", entry.applicationType);
+  formDataTR.append("Application_Type", entry.applicationType);
+
+  // console for debugging each row
+  // console.log("TR row:", Object.fromEntries(formDataTR));
+
+  fetch(TR_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formDataTR.toString(),
   });
+});
 
   document.getElementById("result").innerText = t.submitSuccess;
   document.getElementById("listContainer").innerHTML = "";
   chemicals.length = 0;
 }
     function editChemical(index) {
-      const t = getTranslations();
+  const t = getTranslations();
+  const item = chemicals[index];
 
-      const item = chemicals[index];
-      document.getElementById("amount").value = item.amount;
-      document.getElementById("unit").value = item.unit;
-      lastProductName = item.product;
-      lastBarcode = item.barcode;
-      document.getElementById("applicationType").value = item.applicationType || "";
-      document.getElementById("productInfo").innerHTML = `✏️ Editing: <strong>${item.product}</strong>`;
-      document.getElementById("scannerUI").style.display = "flex";
-      document.getElementById("startScanBtn").style.display = "none";
-      chemicals.splice(index, 1);
-      const list = document.getElementById("listContainer");
-      list.removeChild(list.childNodes[index]);
-    }
+  // amount/unit/product/barcode/app type back to editor
+  document.getElementById("amount").value = item.amount;
+  document.getElementById("unit").value = item.unit;
+  lastProductName = item.product;
+  lastBarcode = item.barcode;
+  document.getElementById("applicationType").value = item.applicationType || "";
+
+  // section/bay back to selectors
+  document.getElementById("section").value = item.section || "";
+  const bays = SECTION_BAYS[item.section] || [];
+  const bayEl = document.getElementById("bay");
+  bayEl.innerHTML = '<option value="">' + getTranslations().selectBay + '</option>' +
+    bays.map(b => `<option value="${b}">${b}</option>`).join("");
+  bayEl.disabled = bays.length === 0;
+  bayEl.value = item.bay || "";
+
+  // crops back to chips (and put first into the input for quick tweak)
+  cropsSelected.length = 0;
+  (item.crops || []).forEach(c => cropsSelected.push(c));
+  renderCropChips();
+  document.getElementById("cropInput").value = (item.crops && item.crops[0]) ? item.crops[0] : "";
+
+  // show edit UI
+  document.getElementById("productInfo").innerHTML = `✏️ Editing: <strong>${item.product}</strong>`;
+  document.getElementById("scannerUI").style.display = "flex";
+  document.getElementById("startScanBtn").style.display = "none";
+
+  // remove from list + state
+  chemicals.splice(index, 1);
+  const list = document.getElementById("listContainer");
+  list.removeChild(list.childNodes[index]);
+}
 
     function removeChemical(index) {
       const t = getTranslations();
