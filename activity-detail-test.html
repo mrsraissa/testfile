@@ -9,9 +9,9 @@
 
   <style>
     :root {
-      --main-color: #198450;
-      --light-bg: #f0fdf4;
-      --soft-box: #f7fff9;
+      --main-color: #2C5F8A;
+      --light-bg: #EAF3FA;
+      --soft-box: #F4F9FD;
     }
 
     body {
@@ -108,6 +108,11 @@
       justify-content: center;
       gap: 8px;
       cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .load-btn:hover {
+      filter: brightness(0.92);
     }
 
     #results {
@@ -139,10 +144,21 @@
 <body>
 
   <div class="header">
-    <h2 id="pageTitle" style="font-size:18px; font-weight:normal; margin:0;"></h2>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+
+      <span id="headerIcon" class="material-icons" style="font-size:24px;">
+        qr_code_scanner
+      </span>
+
+      <h2 id="pageTitle" style="font-size:18px; font-weight:normal; margin:0;"></h2>
+
+    </div>
+
   </div>
 
   <div class="card">
+
     <label>Select Date:</label>
 
     <input type="date" id="selectedDate">
@@ -153,9 +169,11 @@
     </button>
 
     <div id="results"></div>
+
   </div>
 
   <div class="bottom-bar">
+
     <button class="back-btn" onclick="goBack()">
       <span class="material-icons">arrow_back</span>
     </button>
@@ -163,33 +181,43 @@
     <button class="home-btn" onclick="goHome()">
       <span class="material-icons">home</span>
     </button>
+
   </div>
 
   <script>
+
     const scriptURL = "https://script.google.com/macros/s/AKfycbzHAHHd-ZuKxEB2V7ZQz1nkH_CHvtrsjMFfsMrVShljuhBqU3mR_0nXBTYYvsbcMhrs/exec";
 
     const params = new URLSearchParams(window.location.search);
+
     const action = params.get("action") || "scans";
 
     const settings = {
+
       scans: {
         title: "Check Out",
+        icon: "qr_code_scanner",
         main: "#FB8C00",
         light: "#FFE0B3",
         soft: "#FFF3E0"
       },
+
       reports: {
         title: "Technical Report",
+        icon: "description",
         main: "#2E7D32",
         light: "#DAF2D6",
         soft: "#F1F9F0"
       },
+
       returns: {
         title: "Product Return",
+        icon: "undo",
         main: "#7B4AB3",
         light: "#E6D6F0",
         soft: "#F3E8FF"
       }
+
     };
 
     const page = settings[action] || settings.scans;
@@ -199,6 +227,9 @@
     document.documentElement.style.setProperty("--soft-box", page.soft);
 
     document.getElementById("pageTitle").innerText = page.title;
+
+    document.getElementById("headerIcon").innerText = page.icon;
+
     document.title = page.title;
 
     let employeeName = localStorage.getItem("employeeName");
@@ -208,24 +239,31 @@
     }
 
     const today = new Date().toISOString().split("T")[0];
+
     document.getElementById("selectedDate").value = today;
 
     async function loadActivity() {
+
       const selectedDate = document.getElementById("selectedDate").value;
+
       const resultsDiv = document.getElementById("results");
 
       resultsDiv.innerHTML = `<p class="empty">Loading activity...</p>`;
 
       try {
+
         const url =
           `${scriptURL}?action=${encodeURIComponent(action)}&employee=${encodeURIComponent(employeeName)}&date=${encodeURIComponent(selectedDate)}`;
 
         const response = await fetch(url);
+
         const data = await response.json();
 
         if (!data.results || data.results.length === 0) {
+
           resultsDiv.innerHTML =
             `<p class="empty">No activity found for this date.</p>`;
+
           return;
         }
 
@@ -233,14 +271,18 @@
           data.results.map(item => renderItem(item)).join("");
 
       } catch (err) {
+
         console.error(err);
+
         resultsDiv.innerHTML =
           `<p class="empty">Could not load activity.</p>`;
       }
     }
 
     function renderItem(item) {
+
       if (action === "reports") {
+
         return `
           <div class="item">
             <strong>${item.product || "Unknown Product"}</strong><br>
@@ -251,6 +293,7 @@
       }
 
       if (action === "returns") {
+
         return `
           <div class="item">
             <strong>${item.product || "Unknown Product"}</strong><br>
@@ -276,6 +319,7 @@
     function goHome() {
       window.location.href = "index.html";
     }
+
   </script>
 
 </body>
