@@ -33,13 +33,8 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
-    .header {
-      top: 0;
-    }
-
-    .bottom-bar {
-      bottom: 0;
-    }
+    .header { top: 0; }
+    .bottom-bar { bottom: 0; }
 
     .bottom-bar button {
       background: none;
@@ -71,18 +66,29 @@
       margin-top: 14px;
       font-size: 17px;
       font-weight: bold;
-      background: #198450;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: transform 0.2s ease;
     }
 
     .activity-btn:hover {
-      background: #106d3f;
+      transform: scale(1.03);
+    }
+
+    .checkout-btn {
+      background: #FB8C00;
+    }
+
+    .report-btn {
+      background: #2E7D32;
+    }
+
+    .return-btn {
+      background: #7B4AB3;
     }
 
     .material-icons {
@@ -102,17 +108,17 @@
   <div class="card">
     <h3>Select Activity Type</h3>
 
-    <button class="activity-btn" onclick="openActivity('scans')">
+    <button class="activity-btn checkout-btn" onclick="openActivity('scans')">
       <span class="material-icons">inventory_2</span>
       Check Out
     </button>
 
-    <button class="activity-btn" onclick="openActivity('reports')">
+    <button class="activity-btn report-btn" onclick="openActivity('reports')">
       <span class="material-icons">description</span>
       Technical Report
     </button>
 
-    <button class="activity-btn" onclick="openActivity('returns')">
+    <button class="activity-btn return-btn" onclick="openActivity('returns')">
       <span class="material-icons">undo</span>
       Returns
     </button>
