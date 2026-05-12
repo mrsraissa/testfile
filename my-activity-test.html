@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Activity</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
   <style>
@@ -12,11 +13,13 @@
       font-family: Arial, sans-serif;
       background: #f0fdf4;
       color: #065f46;
+      padding-top: 80px;
+      padding-bottom: 90px;
       text-align: center;
-      padding: 80px 20px 90px;
     }
 
-    .header, .bottom-bar {
+    .header,
+    .bottom-bar {
       position: fixed;
       left: 0;
       width: 100%;
@@ -26,12 +29,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10;
+      z-index: 100;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
-    .header { top: 0; }
-    .bottom-bar { bottom: 0; }
+    .header {
+      top: 0;
+    }
+
+    .bottom-bar {
+      bottom: 0;
+    }
 
     .bottom-bar button {
       background: none;
@@ -42,233 +50,89 @@
 
     .card {
       background: white;
-      max-width: 440px;
-      margin: 0 auto;
+      width: 90%;
+      max-width: 420px;
+      margin: auto;
       padding: 24px;
-      border-radius: 16px;
+      border-radius: 18px;
       box-shadow: 0 6px 14px rgba(0,0,0,0.12);
     }
 
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+    h3 {
+      margin-top: 0;
+      color: #065f46;
     }
 
-    button {
+    .activity-btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+      font-size: 17px;
+      font-weight: bold;
       background: #198450;
       color: white;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
     }
 
-    button:hover { background: #106d3f; }
-
-    .section-buttons {
-      display: grid;
-      gap: 8px;
-      margin-top: 16px;
-    }
-
-    .active-btn {
+    .activity-btn:hover {
       background: #106d3f;
-      box-shadow: inset 0 0 0 2px white;
     }
 
-    #selectedSectionTitle {
-      margin-top: 20px;
-      text-align: center;
-      color: #065f46;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    #results {
-      margin-top: 12px;
-      text-align: left;
-    }
-
-    .item {
-      background: #f7fff9;
-      border-left: 5px solid #198450;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      color: #333;
-    }
-
-    .empty {
-      text-align: center;
-      color: #777;
-      margin-top: 18px;
+    .material-icons {
+      font-size: 22px;
     }
   </style>
 </head>
 
 <body>
+
   <div class="header">
-    <h2 style="font-size:18px; font-weight:normal; margin:0;">My Activity</h2>
+    <h2 style="font-size:18px; font-weight:normal; margin:0;">
+      My Activity
+    </h2>
   </div>
 
   <div class="card">
-    <h3>View Activity</h3>
+    <h3>Select Activity Type</h3>
 
-    <p>
-      Employee:
-      <strong id="employeeNameDisplay"></strong>
-    </p>
+    <button class="activity-btn" onclick="openActivity('scans')">
+      <span class="material-icons">inventory_2</span>
+      Check Out
+    </button>
 
-    <label for="selectedDate">Select Date:</label>
-    <input type="date" id="selectedDate">
+    <button class="activity-btn" onclick="openActivity('reports')">
+      <span class="material-icons">description</span>
+      Technical Report
+    </button>
 
-    <div class="section-buttons">
-      <button id="scansBtn" onclick="loadActivity('scans')">
-        <span class="material-icons">inventory_2</span>
-        Check Out
-      </button>
-
-      <button id="reportsBtn" onclick="loadActivity('reports')">
-        <span class="material-icons">description</span>
-        Technical Report
-      </button>
-
-      <button id="returnsBtn" onclick="loadActivity('returns')">
-        <span class="material-icons">undo</span>
-        Returns
-      </button>
-    </div>
-
-    <h4 id="selectedSectionTitle"></h4>
-
-    <div id="results"></div>
+    <button class="activity-btn" onclick="openActivity('returns')">
+      <span class="material-icons">undo</span>
+      Returns
+    </button>
   </div>
 
   <div class="bottom-bar">
-    <button onclick="goBack()">
+    <button onclick="goHome()">
       <span class="material-icons">home</span>
     </button>
   </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzj7XZaC4dckdfOzqV6LHNmD72SC0ixbSJz2oxlj5G1jAJ4PEUC8k6wXkqSyT3kMc5q/exec";
-
-    // TEMPORARY TEST MODE
-    // Later switch back to localStorage login
-
-    let employeeName = localStorage.getItem("employeeName");
-
-    if (!employeeName || employeeName === "Unknown") {
-      employeeName = "Will"; // default test employee
+    function openActivity(type) {
+      window.location.href = `activity-detail-test.html?action=${type}`;
     }
 
-    document.getElementById("employeeNameDisplay").innerText = employeeName;
-
-    const today = new Date().toISOString().split("T")[0];
-    document.getElementById("selectedDate").value = today;
-
-    let currentAction = "scans";
-
-    async function loadActivity(action) {
-      currentAction = action;
-
-      const sectionTitles = {
-        scans: "Showing: Check Out",
-        reports: "Showing: Technical Report",
-        returns: "Showing: Returns"
-      };
-
-      document.getElementById("selectedSectionTitle").innerText = sectionTitles[action];
-
-      document.getElementById("scansBtn").classList.remove("active-btn");
-      document.getElementById("reportsBtn").classList.remove("active-btn");
-      document.getElementById("returnsBtn").classList.remove("active-btn");
-
-      if (action === "scans") document.getElementById("scansBtn").classList.add("active-btn");
-      if (action === "reports") document.getElementById("reportsBtn").classList.add("active-btn");
-      if (action === "returns") document.getElementById("returnsBtn").classList.add("active-btn");
-
-      const selectedDate = document.getElementById("selectedDate").value;
-      const resultsDiv = document.getElementById("results");
-
-      if (!employeeName || employeeName === "Unknown") {
-        resultsDiv.innerHTML = `<p class="empty">Employee name not found. Please log in again.</p>`;
-        return;
-      }
-
-      if (!selectedDate) {
-        resultsDiv.innerHTML = `<p class="empty">Please select a date.</p>`;
-        return;
-      }
-
-      resultsDiv.innerHTML = `<p class="empty">Loading activity...</p>`;
-
-      try {
-        const url = `${scriptURL}?action=${encodeURIComponent(action)}&employee=${encodeURIComponent(employeeName)}&date=${encodeURIComponent(selectedDate)}`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.status !== "success") {
-          resultsDiv.innerHTML = `<p class="empty">Error loading activity.</p>`;
-          return;
-        }
-
-        if (!data.results || data.results.length === 0) {
-          resultsDiv.innerHTML = `<p class="empty">No activity found for this date.</p>`;
-          return;
-        }
-
-        resultsDiv.innerHTML = data.results.map(item => renderItem(item, action)).join("");
-
-      } catch (error) {
-        console.error(error);
-        resultsDiv.innerHTML = `<p class="empty">Could not connect to activity data.</p>`;
-      }
-    }
-
-    function renderItem(item, action) {
-      if (action === "reports") {
-        return `
-          <div class="item">
-            <strong>${item.product || "Barcode " + (item.barcode || "")}</strong><br>
-            Time: ${item.time || ""}<br>
-            Barcode: ${item.barcode || ""}<br>
-            Amount: ${item.amount || item.quantity || ""} ${item.unit || ""}
-          </div>
-        `;
-      }
-
-      if (action === "returns") {
-        return `
-          <div class="item">
-            <strong>${item.product || "Unknown product"}</strong><br>
-            Time: ${item.time || ""}<br>
-            Barcode: ${item.barcode || ""}<br>
-            Returned Qty: ${item.quantity || ""}
-          </div>
-        `;
-      }
-
-      return `
-        <div class="item">
-          <strong>${item.product || "Unknown product"}</strong><br>
-          Time: ${item.time || ""}<br>
-          Quantity: ${item.quantity || ""}
-        </div>
-      `;
-    }
-
-    function goBack() {
+    function goHome() {
       window.location.href = "index.html";
     }
   </script>
+
 </body>
 </html>
