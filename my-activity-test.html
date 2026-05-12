@@ -30,13 +30,8 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
-    .header {
-      top: 0;
-    }
-
-    .bottom-bar {
-      bottom: 0;
-    }
+    .header { top: 0; }
+    .bottom-bar { bottom: 0; }
 
     .bottom-bar button {
       background: none;
@@ -47,7 +42,7 @@
 
     .card {
       background: white;
-      max-width: 420px;
+      max-width: 440px;
       margin: 0 auto;
       padding: 24px;
       border-radius: 16px;
@@ -76,8 +71,17 @@
       gap: 8px;
     }
 
-    button:hover {
+    button:hover { background: #106d3f; }
+
+    .section-buttons {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .active-btn {
       background: #106d3f;
+      box-shadow: inset 0 0 0 2px white;
     }
 
     #results {
@@ -104,13 +108,12 @@
 
 <body>
   <div class="header">
-    <h2 style="font-size:18px; font-weight:normal; margin:0;">
-      My Activity
-    </h2>
+    <h2 style="font-size:18px; font-weight:normal; margin:0;">My Activity</h2>
   </div>
 
   <div class="card">
-    <h3>View Scanned Products</h3>
+    <h3>View Activity</h3>
+
     <p>
       Employee:
       <strong id="employeeNameDisplay"></strong>
@@ -119,10 +122,22 @@
     <label for="selectedDate">Select Date:</label>
     <input type="date" id="selectedDate">
 
-    <button onclick="loadActivity()">
-      <span class="material-icons">search</span>
-      View Activity
-    </button>
+    <div class="section-buttons">
+      <button id="scansBtn" onclick="loadActivity('scans')">
+        <span class="material-icons">inventory_2</span>
+        Scanned Products
+      </button>
+
+      <button id="reportsBtn" onclick="loadActivity('reports')">
+        <span class="material-icons">description</span>
+        Technical Report
+      </button>
+
+      <button id="returnsBtn" onclick="loadActivity('returns')">
+        <span class="material-icons">undo</span>
+        Returns
+      </button>
+    </div>
 
     <div id="results"></div>
   </div>
@@ -134,7 +149,7 @@
   </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbwc8Upe4NVXYPdo7xkTVDxHk_q9lCjNaMpPmdBMi4eehDNCQneoZvtdZ4jTX-q2Rkg/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzj7XZaC4dckdfOzqV6LHNmD72SC0ixbSJz2oxlj5G1jAJ4PEUC8k6wXkqSyT3kMc5q/exec";
 
     const employeeName = localStorage.getItem("employeeName") || "Unknown";
     document.getElementById("employeeNameDisplay").innerText = employeeName;
@@ -142,7 +157,19 @@
     const today = new Date().toISOString().split("T")[0];
     document.getElementById("selectedDate").value = today;
 
-    async function loadActivity() {
+    let currentAction = "scans";
+
+    async function loadActivity(action) {
+      currentAction = action;
+
+      document.getElementById("scansBtn").classList.remove("active-btn");
+      document.getElementById("reportsBtn").classList.remove("active-btn");
+      document.getElementById("returnsBtn").classList.remove("active-btn");
+
+      if (action === "scans") document.getElementById("scansBtn").classList.add("active-btn");
+      if (action === "reports") document.getElementById("reportsBtn").classList.add("active-btn");
+      if (action === "returns") document.getElementById("returnsBtn").classList.add("active-btn");
+
       const selectedDate = document.getElementById("selectedDate").value;
       const resultsDiv = document.getElementById("results");
 
@@ -159,7 +186,7 @@
       resultsDiv.innerHTML = `<p class="empty">Loading activity...</p>`;
 
       try {
-        const url = `${scriptURL}?employee=${encodeURIComponent(employeeName)}&date=${encodeURIComponent(selectedDate)}`;
+        const url = `${scriptURL}?action=${encodeURIComponent(action)}&employee=${encodeURIComponent(employeeName)}&date=${encodeURIComponent(selectedDate)}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -173,19 +200,45 @@
           return;
         }
 
-        resultsDiv.innerHTML = data.results.map(item => `
-          <div class="item">
-            <strong>${item.product || "Unknown product"}</strong><br>
-            Time: ${item.time || ""}<br>
-            Barcode: ${item.barcode || ""}<br>
-            Quantity: ${item.quantity || ""}
-          </div>
-        `).join("");
+        resultsDiv.innerHTML = data.results.map(item => renderItem(item, action)).join("");
 
       } catch (error) {
         console.error(error);
         resultsDiv.innerHTML = `<p class="empty">Could not connect to activity data.</p>`;
       }
+    }
+
+    function renderItem(item, action) {
+      if (action === "reports") {
+        return `
+          <div class="item">
+            <strong>${item.product || "Barcode " + (item.barcode || "")}</strong><br>
+            Time: ${item.time || ""}<br>
+            Barcode: ${item.barcode || ""}<br>
+            Amount: ${item.amount || item.quantity || ""} ${item.unit || ""}
+          </div>
+        `;
+      }
+
+      if (action === "returns") {
+        return `
+          <div class="item">
+            <strong>${item.product || "Unknown product"}</strong><br>
+            Time: ${item.time || ""}<br>
+            Barcode: ${item.barcode || ""}<br>
+            Returned Qty: ${item.quantity || ""}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="item">
+          <strong>${item.product || "Unknown product"}</strong><br>
+          Time: ${item.time || ""}<br>
+          Barcode: ${item.barcode || ""}<br>
+          Quantity: ${item.quantity || ""}
+        </div>
+      `;
     }
 
     function goBack() {
