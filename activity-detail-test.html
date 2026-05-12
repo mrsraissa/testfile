@@ -159,13 +159,13 @@
 
   <div class="card">
 
-    <label>Select Date:</label>
+    <label id="dateLabel"></label>
 
     <input type="date" id="selectedDate">
 
     <button class="load-btn" onclick="loadActivity()">
       <span class="material-icons" style="font-size:22px;">search</span>
-      View Activity
+      <span id="viewActivityText"></span>
     </button>
 
     <div id="results"></div>
@@ -186,6 +186,48 @@
 
   <script>
 
+    const lang = localStorage.getItem('preferredLanguage') || 'en';
+
+    const translations = {
+
+      en: {
+        selectDate: "Select Date:",
+        viewActivity: "View Activity",
+        loading: "Loading activity...",
+        noActivity: "No activity found for this date.",
+        loadError: "Could not load activity.",
+        unknownProduct: "Unknown Product",
+        time: "Time",
+        amount: "Amount",
+        returnedQty: "Returned Qty",
+        checkoutQty: "Check Out Qty",
+
+        scansTitle: "Check Out",
+        reportsTitle: "Technical Report",
+        returnsTitle: "Product Return"
+      },
+
+      es: {
+        selectDate: "Seleccionar fecha:",
+        viewActivity: "Ver Actividad",
+        loading: "Cargando actividad...",
+        noActivity: "No se encontró actividad para esta fecha.",
+        loadError: "No se pudo cargar la actividad.",
+        unknownProduct: "Producto desconocido",
+        time: "Hora",
+        amount: "Cantidad",
+        returnedQty: "Cant. devuelta",
+        checkoutQty: "Cant. de salida",
+
+        scansTitle: "Registro de salida",
+        reportsTitle: "Informe Técnico",
+        returnsTitle: "Devolución de producto"
+      }
+
+    };
+
+    const t = translations[lang];
+
     const scriptURL = "https://script.google.com/macros/s/AKfycbzHAHHd-ZuKxEB2V7ZQz1nkH_CHvtrsjMFfsMrVShljuhBqU3mR_0nXBTYYvsbcMhrs/exec";
 
     const params = new URLSearchParams(window.location.search);
@@ -195,7 +237,7 @@
     const settings = {
 
       scans: {
-        title: "Check Out",
+        title: t.scansTitle,
         icon: "qr_code_scanner",
         main: "#FB8C00",
         light: "#FFE0B3",
@@ -203,7 +245,7 @@
       },
 
       reports: {
-        title: "Technical Report",
+        title: t.reportsTitle,
         icon: "description",
         main: "#2E7D32",
         light: "#DAF2D6",
@@ -211,7 +253,7 @@
       },
 
       returns: {
-        title: "Product Return",
+        title: t.returnsTitle,
         icon: "undo",
         main: "#7B4AB3",
         light: "#E6D6F0",
@@ -229,6 +271,10 @@
     document.getElementById("pageTitle").innerText = page.title;
 
     document.getElementById("headerIcon").innerText = page.icon;
+
+    document.getElementById("dateLabel").innerText = t.selectDate;
+
+    document.getElementById("viewActivityText").innerText = t.viewActivity;
 
     document.title = page.title;
 
@@ -248,7 +294,7 @@
 
       const resultsDiv = document.getElementById("results");
 
-      resultsDiv.innerHTML = `<p class="empty">Loading activity...</p>`;
+      resultsDiv.innerHTML = `<p class="empty">${t.loading}</p>`;
 
       try {
 
@@ -262,7 +308,7 @@
         if (!data.results || data.results.length === 0) {
 
           resultsDiv.innerHTML =
-            `<p class="empty">No activity found for this date.</p>`;
+            `<p class="empty">${t.noActivity}</p>`;
 
           return;
         }
@@ -275,7 +321,7 @@
         console.error(err);
 
         resultsDiv.innerHTML =
-          `<p class="empty">Could not load activity.</p>`;
+          `<p class="empty">${t.loadError}</p>`;
       }
     }
 
@@ -285,9 +331,9 @@
 
         return `
           <div class="item">
-            <strong>${item.product || "Unknown Product"}</strong><br>
-            Time: ${item.time || ""}<br>
-            Amount: ${item.amount || ""} ${item.unit || ""}
+            <strong>${item.product || t.unknownProduct}</strong><br>
+            ${t.time}: ${item.time || ""}<br>
+            ${t.amount}: ${item.amount || ""} ${item.unit || ""}
           </div>
         `;
       }
@@ -296,18 +342,18 @@
 
         return `
           <div class="item">
-            <strong>${item.product || "Unknown Product"}</strong><br>
-            Time: ${item.time || ""}<br>
-            Returned Qty: ${item.quantity || ""}
+            <strong>${item.product || t.unknownProduct}</strong><br>
+            ${t.time}: ${item.time || ""}<br>
+            ${t.returnedQty}: ${item.quantity || ""}
           </div>
         `;
       }
 
       return `
         <div class="item">
-          <strong>${item.product || "Unknown Product"}</strong><br>
-          Time: ${item.time || ""}<br>
-          Check Out Qty:${item.quantity || ""}
+          <strong>${item.product || t.unknownProduct}</strong><br>
+          ${t.time}: ${item.time || ""}<br>
+          ${t.checkoutQty}: ${item.quantity || ""}
         </div>
       `;
     }
