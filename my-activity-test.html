@@ -93,34 +93,35 @@
     .material-icons {
       font-size: 22px;
     }
-</style>
+  </style>
 </head>
 
 <body>
 
   <div class="header">
-    <h2 style="font-size:18px; font-weight:normal; margin:0;">
-      My Activity
+    <h2 id="pageTitle" style="font-size:18px; font-weight:normal; margin:0;">
     </h2>
   </div>
 
   <div class="card">
-    <h3>Select Activity Type</h3>
+
+    <h3 id="selectTypeText"></h3>
 
     <button class="activity-btn" onclick="openActivity('scans')">
-      <span class="material-icons">qr_code</span>
-      Check Out
+      <span class="material-icons">qr_code_scanner</span>
+      <span id="checkoutText"></span>
     </button>
 
     <button class="activity-btn" onclick="openActivity('reports')">
       <span class="material-icons">description</span>
-      Technical Report
+      <span id="reportText"></span>
     </button>
 
     <button class="activity-btn" onclick="openActivity('returns')">
       <span class="material-icons">undo</span>
-      Product Return
+      <span id="returnText"></span>
     </button>
+
   </div>
 
   <div class="bottom-bar">
@@ -130,6 +131,41 @@
   </div>
 
   <script>
+
+    const lang = localStorage.getItem('preferredLanguage') || 'en';
+
+    const translations = {
+
+      en: {
+        pageTitle: "My Activity",
+        selectType: "Select Activity Type",
+        checkout: "Check Out",
+        report: "Technical Report",
+        returns: "Product Return"
+      },
+
+      es: {
+        pageTitle: "Mi Actividad",
+        selectType: "Seleccionar tipo de actividad",
+        checkout: "Registro de salida",
+        report: "Informe Técnico",
+        returns: "Devolución de producto"
+      }
+
+    };
+
+    const t = translations[lang];
+
+    document.getElementById("pageTitle").innerText = t.pageTitle;
+
+    document.getElementById("selectTypeText").innerText = t.selectType;
+
+    document.getElementById("checkoutText").innerText = t.checkout;
+
+    document.getElementById("reportText").innerText = t.report;
+
+    document.getElementById("returnText").innerText = t.returns;
+
     function openActivity(type) {
       window.location.href = `activity-detail-test.html?action=${type}`;
     }
@@ -137,6 +173,7 @@
     function goHome() {
       window.location.href = "index.html";
     }
+
   </script>
 
 </body>
