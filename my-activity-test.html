@@ -151,8 +151,16 @@
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbzj7XZaC4dckdfOzqV6LHNmD72SC0ixbSJz2oxlj5G1jAJ4PEUC8k6wXkqSyT3kMc5q/exec";
 
-    const employeeName = localStorage.getItem("employeeName") || "Unknown";
-    document.getElementById("employeeNameDisplay").innerText = employeeName;
+ // TEMPORARY TEST MODE
+// Later switch back to localStorage login
+
+let employeeName = localStorage.getItem("employeeName");
+
+if (!employeeName || employeeName === "Unknown") {
+  employeeName = "Will"; // default test employee
+}
+
+document.getElementById("employeeNameDisplay").innerText = employeeName;
 
     const today = new Date().toISOString().split("T")[0];
     document.getElementById("selectedDate").value = today;
