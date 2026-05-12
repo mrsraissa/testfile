@@ -84,8 +84,16 @@
       box-shadow: inset 0 0 0 2px white;
     }
 
-    #results {
+    #selectedSectionTitle {
       margin-top: 20px;
+      text-align: center;
+      color: #065f46;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #results {
+      margin-top: 12px;
       text-align: left;
     }
 
@@ -125,7 +133,7 @@
     <div class="section-buttons">
       <button id="scansBtn" onclick="loadActivity('scans')">
         <span class="material-icons">inventory_2</span>
-        Scanned Products
+        Check Out
       </button>
 
       <button id="reportsBtn" onclick="loadActivity('reports')">
@@ -139,6 +147,8 @@
       </button>
     </div>
 
+    <h4 id="selectedSectionTitle"></h4>
+
     <div id="results"></div>
   </div>
 
@@ -151,16 +161,16 @@
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbzj7XZaC4dckdfOzqV6LHNmD72SC0ixbSJz2oxlj5G1jAJ4PEUC8k6wXkqSyT3kMc5q/exec";
 
- // TEMPORARY TEST MODE
-// Later switch back to localStorage login
+    // TEMPORARY TEST MODE
+    // Later switch back to localStorage login
 
-let employeeName = localStorage.getItem("employeeName");
+    let employeeName = localStorage.getItem("employeeName");
 
-if (!employeeName || employeeName === "Unknown") {
-  employeeName = "Will"; // default test employee
-}
+    if (!employeeName || employeeName === "Unknown") {
+      employeeName = "Will"; // default test employee
+    }
 
-document.getElementById("employeeNameDisplay").innerText = employeeName;
+    document.getElementById("employeeNameDisplay").innerText = employeeName;
 
     const today = new Date().toISOString().split("T")[0];
     document.getElementById("selectedDate").value = today;
@@ -169,6 +179,14 @@ document.getElementById("employeeNameDisplay").innerText = employeeName;
 
     async function loadActivity(action) {
       currentAction = action;
+
+      const sectionTitles = {
+        scans: "Showing: Check Out",
+        reports: "Showing: Technical Report",
+        returns: "Showing: Returns"
+      };
+
+      document.getElementById("selectedSectionTitle").innerText = sectionTitles[action];
 
       document.getElementById("scansBtn").classList.remove("active-btn");
       document.getElementById("reportsBtn").classList.remove("active-btn");
@@ -243,7 +261,6 @@ document.getElementById("employeeNameDisplay").innerText = employeeName;
         <div class="item">
           <strong>${item.product || "Unknown product"}</strong><br>
           Time: ${item.time || ""}<br>
-          Barcode: ${item.barcode || ""}<br>
           Quantity: ${item.quantity || ""}
         </div>
       `;
