@@ -1,1 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Activity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f0fdf4;
+      color: #065f46;
+      text-align: center;
+      padding: 80px 20px 90px;
+    }
+
+    .header, .bottom-bar {
+      position: fixed;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: #198450;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .header {
+      top: 0;
+    }
+
+    .bottom-bar {
+      bottom: 0;
+    }
+
+    .bottom-bar button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    .card {
+      background: white;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #198450;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:hover {
+      background: #106d3f;
+    }
+
+    #results {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .item {
+      background: #f7fff9;
+      border-left: 5px solid #198450;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      margin-top: 18px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h2 style="font-size:18px; font-weight:normal; margin:0;">
+      My Activity
+    </h2>
+  </div>
+
+  <div class="card">
+    <h3>View Scanned Products</h3>
+    <p>
+      Employee:
+      <strong id="employeeNameDisplay"></strong>
+    </p>
+
+    <label for="selectedDate">Select Date:</label>
+    <input type="date" id="selectedDate">
+
+    <button onclick="loadActivity()">
+      <span class="material-icons">search</span>
+      View Activity
+    </button>
+
+    <div id="results"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button onclick="goBack()">
+      <span class="material-icons">home</span>
+    </button>
+  </div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwc8Upe4NVXYPdo7xkTVDxHk_q9lCjNaMpPmdBMi4eehDNCQneoZvtdZ4jTX-q2Rkg/exec";
+
+    const employeeName = localStorage.getItem("employeeName") || "Unknown";
+    document.getElementById("employeeNameDisplay").innerText = employeeName;
+
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("selectedDate").value = today;
+
+    async function loadActivity() {
+      const selectedDate = document.getElementById("selectedDate").value;
+      const resultsDiv = document.getElementById("results");
+
+      if (!employeeName || employeeName === "Unknown") {
+        resultsDiv.innerHTML = `<p class="empty">Employee name not found. Please log in again.</p>`;
+        return;
+      }
+
+      if (!selectedDate) {
+        resultsDiv.innerHTML = `<p class="empty">Please select a date.</p>`;
+        return;
+      }
+
+      resultsDiv.innerHTML = `<p class="empty">Loading activity...</p>`;
+
+      try {
+        const url = `${scriptURL}?employee=${encodeURIComponent(employeeName)}&date=${encodeURIComponent(selectedDate)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status !== "success") {
+          resultsDiv.innerHTML = `<p class="empty">Error loading activity.</p>`;
+          return;
+        }
+
+        if (!data.results || data.results.length === 0) {
+          resultsDiv.innerHTML = `<p class="empty">No activity found for this date.</p>`;
+          return;
+        }
+
+        resultsDiv.innerHTML = data.results.map(item => `
+          <div class="item">
+            <strong>${item.product || "Unknown product"}</strong><br>
+            Time: ${item.time || ""}<br>
+            Barcode: ${item.barcode || ""}<br>
+            Quantity: ${item.quantity || ""}
+          </div>
+        `).join("");
+
+      } catch (error) {
+        console.error(error);
+        resultsDiv.innerHTML = `<p class="empty">Could not connect to activity data.</p>`;
+      }
+    }
+
+    function goBack() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
