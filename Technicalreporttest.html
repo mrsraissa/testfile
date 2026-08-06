@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Technical Report Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#66bb6a" />
+  <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7f5;
+      color: #1f2d1f;
+    }
+    .page-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #2e7d32;
+      color: white;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    .header h2 { margin: 0; font-size: 19px; font-weight: 500; }
+    .content {
+      width: min(680px, 100%);
+      margin: 0 auto;
+      padding: 24px 18px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    }
+    .primary-button, .action-button, .secondary-button {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 16px 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .primary-button, .action-button { background: #66bb6a; color: #102510; }
+    .primary-button { width: 100%; min-height: 86px; font-size: 22px; }
+    .action-button { width: 100%; color: white; }
+    .secondary-button { background: #e8f5e9; color: #1b5e20; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    #scannerUI { display: none; flex-direction: column; gap: 14px; }
+    .video-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+    #preview { width: 100%; border-radius: 12px; background: #111; }
+    .scanner-overlay {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 72%; height: 30%;
+      transform: translate(-50%, -50%);
+      border: 3px solid #66bb6a;
+      border-radius: 10px;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.18);
+    }
+    .flash-button {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 44px; height: 44px;
+      border-radius: 50%; border: 0;
+      background: rgba(0,0,0,.65); color: #ffd600;
+      font-size: 22px;
+    }
+    #productInfo { min-height: 56px; text-align: center; font-size: 22px; font-weight: 700; color: #1b5e20; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input, select {
+      width: 100%;
+      font-size: 18px;
+      padding: 12px;
+      border: 1px solid #cbd5cb;
+      border-radius: 10px;
+      background: white;
+    }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #listContainer { list-style: none; padding: 0; margin: 0; }
+    #listContainer li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #edf1ed;
+    }
+    .list-actions { display: flex; gap: 8px; }
+    .icon-button { border: 0; background: transparent; cursor: pointer; font-size: 20px; }
+    #result { white-space: pre-line; text-align: center; font-weight: 700; min-height: 24px; }
+    .diagnostics {
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      background: #eef3ee;
+      border-radius: 10px;
+      padding: 12px;
+      color: #334433;
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 520px) { .field-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <header class="header"><h2>Technical Report — Test</h2></header>
+
+    <main class="content">
+      <div class="card">
+        <button id="startScanBtn" class="primary-button" type="button">
+          <span class="material-icons">qr_code_scanner</span>
+          <span>Scan Chemical</span>
+        </button>
+
+        <div id="scannerUI">
+          <div class="video-wrap">
+            <video id="preview" playsinline muted></video>
+            <div class="scanner-overlay"></div>
+            <button id="flashBtn" class="flash-button" type="button" aria-label="Toggle flash">🔦</button>
+          </div>
+
+          <div id="productInfo">Point the camera at the barcode.</div>
+
+          <div class="field-grid">
+            <div>
+              <label for="amount">Amount</label>
+              <input type="number" id="amount" min="0" step="any" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="unit">Unit</label>
+              <select id="unit">
+                <option value="">Select unit</option>
+                <option value="oz">oz</option>
+                <option value="fl oz">fl oz</option>
+                <option value="lb">lb</option>
+                <option value="ml">ml</option>
+                <option value="g">g</option>
+                <option value="EA">EA</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="addChemicalBtn" class="action-button" type="button">
+            <span class="material-icons">add_circle</span>
+            Add Chemical
+          </button>
+          <button id="rescanBtn" class="secondary-button" type="button">Scan Again</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label for="employeeName">Employee name</label>
+        <input type="text" id="employeeName" autocomplete="name" placeholder="Enter employee name" />
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Chemical list</h3>
+        <ul id="listContainer"></ul>
+        <div id="emptyList">No chemicals added.</div>
+      </div>
+
+      <button id="submitBtn" class="action-button" type="button">
+        <span class="material-icons">send</span>
+        Submit Technical Report
+      </button>
+
+      <div id="result"></div>
+
+      <div class="card">
+        <strong>Test diagnostics</strong>
+        <div id="diagnostics" class="diagnostics">Ready.</div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Replace with the NEW test Apps Script deployment URL.
+    const SCRIPT_URL = "PASTE_TEST_APPS_SCRIPT_EXEC_URL_HERE";
+    const MAX_CHEMICALS = 50;
+    const LOOKUP_TIMEOUT_MS = 12000;
+    const SUBMIT_TIMEOUT_MS = 20000;
+
+    const chemicals = [];
+    let codeReader = null;
+    let currentStream = null;
+    let currentTrack = null;
+    let flashOn = false;
+    let scannerStarting = false;
+    let scannerActive = false;
+    let lookupController = null;
+    let scanToken = 0;
+    let lastBarcode = "";
+    let lastProductName = "";
+    let editingId = null;
+    let scanStartedAt = 0;
+
+    const els = {
+      startScanBtn: document.getElementById("startScanBtn"),
+      scannerUI: document.getElementById("scannerUI"),
+      preview: document.getElementById("preview"),
+      flashBtn: document.getElementById("flashBtn"),
+      productInfo: document.getElementById("productInfo"),
+      amount: document.getElementById("amount"),
+      unit: document.getElementById("unit"),
+      addChemicalBtn: document.getElementById("addChemicalBtn"),
+      rescanBtn: document.getElementById("rescanBtn"),
+      employeeName: document.getElementById("employeeName"),
+      listContainer: document.getElementById("listContainer"),
+      emptyList: document.getElementById("emptyList"),
+      submitBtn: document.getElementById("submitBtn"),
+      result: document.getElementById("result"),
+      diagnostics: document.getElementById("diagnostics")
+    };
+
+    function logDiagnostic(message) {
+      const stamp = new Date().toLocaleTimeString();
+      els.diagnostics.textContent = `[${stamp}] ${message}\n` + els.diagnostics.textContent;
+    }
+
+    function normalizeBarcode(value) {
+      return String(value ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+    }
+
+    function createId() {
+      if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    async function stopScanner() {
+      scanToken += 1;
+      scannerActive = false;
+
+      if (lookupController) {
+        lookupController.abort();
+        lookupController = null;
+      }
+
+      if (codeReader) {
+        try { codeReader.reset(); } catch (_) {}
+        codeReader = null;
+      }
+
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+
+      currentTrack = null;
+      flashOn = false;
+      els.preview.srcObject = null;
+    }
+
+    async function getRearCameraId() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === "videoinput");
+      if (!cameras.length) return null;
+
+      const rear = cameras.find(camera => /back|rear|environment/i.test(camera.label));
+      return (rear || cameras[cameras.length - 1]).deviceId || null;
+    }
+
+    async function openScanner() {
+      if (scannerStarting || scannerActive) return;
+      scannerStarting = true;
+      els.startScanBtn.disabled = true;
+      els.result.textContent = "";
+      els.productInfo.textContent = "Opening camera...";
+      els.startScanBtn.classList.add("hidden");
+      els.scannerUI.style.display = "flex";
+
+      await stopScanner();
+      const myToken = ++scanToken;
+      scanStartedAt = performance.now();
+
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser.");
+        }
+
+        // Ask permission once so camera labels become available.
+        const permissionStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        permissionStream.getTracks().forEach(track => track.stop());
+
+        const deviceId = await getRearCameraId();
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        scannerActive = true;
+        els.productInfo.textContent = "Point the camera at the barcode...";
+        logDiagnostic("Camera opened. Waiting for barcode.");
+
+        // ZXing owns the only active stream.
+        codeReader.decodeFromVideoDevice(deviceId, els.preview, async (result, error) => {
+          if (myToken !== scanToken || !scannerActive) return;
+
+          if (result) {
+            scannerActive = false;
+            const barcode = normalizeBarcode(result.text);
+            const decodeMs = Math.round(performance.now() - scanStartedAt);
+            logDiagnostic(`Barcode read in ${decodeMs} ms: ${barcode}`);
+            await handleBarcode(barcode, myToken);
+            return;
+          }
+
+          if (error && !(error instanceof ZXing.NotFoundException)) {
+            console.error(error);
+            logDiagnostic(`Scanner warning: ${error.message || error}`);
+          }
+        });
+
+        // Retrieve the stream created by ZXing from the video element.
+        await new Promise(resolve => setTimeout(resolve, 250));
+        currentStream = els.preview.srcObject;
+        currentTrack = currentStream?.getVideoTracks?.()[0] || null;
+      } catch (error) {
+        console.error(error);
+        await stopScanner();
+        els.productInfo.textContent = `❌ ${error.message || "Unable to start camera."}`;
+        els.startScanBtn.classList.remove("hidden");
+        logDiagnostic(`Camera error: ${error.message || error}`);
+      } finally {
+        scannerStarting = false;
+        els.startScanBtn.disabled = false;
+      }
+    }
+
+    async function handleBarcode(barcode, token) {
+      if (!barcode) {
+        els.productInfo.textContent = "❌ Empty barcode received.";
+        return;
+      }
+
+      lastBarcode = barcode;
+      lastProductName = "";
+      els.productInfo.innerHTML = `✅ Barcode read: <strong>${barcode}</strong><br>🔍 Checking inventory...`;
+
+      try {
+        const lookupStart = performance.now();
+        lookupController = new AbortController();
+        const timeoutId = setTimeout(() => lookupController.abort(), LOOKUP_TIMEOUT_MS);
+
+        const response = await fetch(
+          `${SCRIPT_URL}?action=lookup&barcode=${encodeURIComponent(barcode)}&_=${Date.now()}`,
+          { cache: "no-store", signal: lookupController.signal }
+        );
+
+        clearTimeout(timeoutId);
+        const text = await response.text();
+        if (!response.ok) throw new Error(`Lookup server error ${response.status}`);
+
+        let data;
+        try { data = JSON.parse(text); }
+        catch (_) { throw new Error("Lookup returned invalid JSON."); }
+
+        if (token !== scanToken) return;
+
+        const lookupMs = Math.round(performance.now() - lookupStart);
+        logDiagnostic(`Lookup round trip: ${lookupMs} ms; server: ${data.durationMs ?? "n/a"} ms.`);
+
+        if (data.status === "found") {
+          lastProductName = String(data.product || "").trim();
+          els.productInfo.innerHTML = `✅ <strong>${escapeHtml(lastProductName)}</strong><br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+        } else if (data.status === "not_found") {
+          els.productInfo.innerHTML = `❌ Product not found<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+        } else {
+          throw new Error(data.message || "Inventory lookup failed.");
+        }
+      } catch (error) {
+        if (token !== scanToken) return;
+        const message = error.name === "AbortError"
+          ? "Inventory lookup timed out. Please try again."
+          : (error.message || "Unable to check inventory.");
+        els.productInfo.textContent = `❌ ${message}`;
+        logDiagnostic(`Lookup error: ${message}`);
+      } finally {
+        lookupController = null;
+        if (token === scanToken) await stopScanner();
+      }
+    }
+
+    async function toggleFlash() {
+      try {
+        const track = currentTrack || els.preview.srcObject?.getVideoTracks?.()[0];
+        if (!track) throw new Error("Camera is not active.");
+        const capabilities = track.getCapabilities?.() || {};
+        if (!capabilities.torch) throw new Error("Flash is not supported on this device.");
+        flashOn = !flashOn;
+        await track.applyConstraints({ advanced: [{ torch: flashOn }] });
+      } catch (error) {
+        alert(error.message || "Unable to control flash.");
+      }
+    }
+
+    function addChemical() {
+      const amount = Number(els.amount.value);
+      const unit = els.unit.value;
+      const employee = els.employeeName.value.trim();
+
+      if (!employee) {
+        els.result.textContent = "❌ Enter the employee name.";
+        els.employeeName.focus();
+        return;
+      }
+      if (!lastProductName || !lastBarcode) {
+        els.result.textContent = "❌ Scan and confirm a valid chemical first.";
+        return;
+      }
+      if (!Number.isFinite(amount) || amount <= 0 || !unit) {
+        els.result.textContent = "❌ Enter an amount greater than zero and select a unit.";
+        return;
+      }
+      if (chemicals.length >= MAX_CHEMICALS && !editingId) {
+        els.result.textContent = `❌ Maximum of ${MAX_CHEMICALS} chemicals reached.`;
+        return;
+      }
+
+      const entry = {
+        id: editingId || createId(),
+        product: lastProductName,
+        barcode: lastBarcode,
+        amount,
+        unit,
+        employee
+      };
+
+      const existingIndex = chemicals.findIndex(item => item.id === entry.id);
+      if (existingIndex >= 0) chemicals[existingIndex] = entry;
+      else chemicals.push(entry);
+
+      localStorage.setItem("employeeName", employee);
+      editingId = null;
+      lastProductName = "";
+      lastBarcode = "";
+      els.amount.value = "";
+      els.unit.value = "";
+      els.productInfo.textContent = "Chemical added. Scan the next chemical.";
+      els.scannerUI.style.display = "none";
+      els.startScanBtn.classList.remove("hidden");
+      els.result.textContent = "";
+      renderList();
+    }
+
+    function editChemical(id) {
+      const item = chemicals.find(entry => entry.id === id);
+      if (!item) return;
+      editingId = id;
+      lastProductName = item.product;
+      lastBarcode = item.barcode;
+      els.amount.value = item.amount;
+      els.unit.value = item.unit;
+      els.employeeName.value = item.employee;
+      els.productInfo.innerHTML = `✏️ Editing: <strong>${escapeHtml(item.product)}</strong>`;
+      els.scannerUI.style.display = "flex";
+      els.startScanBtn.classList.add("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function removeChemical(id) {
+      const index = chemicals.findIndex(entry => entry.id === id);
+      if (index < 0) return;
+      chemicals.splice(index, 1);
+      renderList();
+    }
+
+    function renderList() {
+      els.listContainer.innerHTML = "";
+      els.emptyList.classList.toggle("hidden", chemicals.length > 0);
+
+      chemicals.forEach(item => {
+        const li = document.createElement("li");
+        const label = document.createElement("span");
+        label.textContent = `${item.product} — ${item.amount} ${item.unit}`;
+
+        const actions = document.createElement("div");
+        actions.className = "list-actions";
+
+        const edit = document.createElement("button");
+        edit.className = "icon-button";
+        edit.type = "button";
+        edit.textContent = "✏️";
+        edit.addEventListener("click", () => editChemical(item.id));
+
+        const remove = document.createElement("button");
+        remove.className = "icon-button";
+        remove.type = "button";
+        remove.textContent = "❌";
+        remove.addEventListener("click", () => removeChemical(item.id));
+
+        actions.append(edit, remove);
+        li.append(label, actions);
+        els.listContainer.appendChild(li);
+      });
+    }
+
+    async function submitData() {
+      if (!chemicals.length) {
+        els.result.textContent = "❌ Add at least one chemical before submitting.";
+        return;
+      }
+      if (!SCRIPT_URL.startsWith("https://script.google.com/macros/s/")) {
+        els.result.textContent = "❌ Add the test Apps Script deployment URL in SCRIPT_URL.";
+        return;
+      }
+
+      const submissionId = createId();
+      const payload = {
+        action: "submitTechnicalReport",
+        submissionId,
+        entries: chemicals.map(({ id, ...entry }) => entry)
+      };
+
+      els.submitBtn.disabled = true;
+      els.result.textContent = `⏳ Sending ${chemicals.length} chemical record(s)...`;
+      const submitStart = performance.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        const text = await response.text();
+        if (!response.ok) throw new Error(`Submission server error ${response.status}`);
+
+        let data;
+        try { data = JSON.parse(text); }
+        catch (_) { throw new Error("Submission returned invalid JSON."); }
+
+        if (data.status !== "success") throw new Error(data.message || "Submission was not confirmed.");
+        if (Number(data.rowsSaved) !== chemicals.length) {
+          throw new Error(`Server confirmed ${data.rowsSaved} of ${chemicals.length} rows.`);
+        }
+
+        const submitMs = Math.round(performance.now() - submitStart);
+        logDiagnostic(`Submission round trip: ${submitMs} ms; server: ${data.durationMs ?? "n/a"} ms; ID: ${submissionId}`);
+        els.result.textContent = `✅ ${data.rowsSaved} chemical record(s) saved successfully.`;
+        chemicals.length = 0;
+        renderList();
+      } catch (error) {
+        const message = error.name === "AbortError"
+          ? "Submission timed out. The list was kept. Check the sheet before trying again."
+          : (error.message || "Submission failed.");
+        els.result.textContent = `❌ ${message}`;
+        logDiagnostic(`Submission error: ${message}; ID: ${submissionId}`);
+      } finally {
+        clearTimeout(timeoutId);
+        els.submitBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+      }[char]));
+    }
+
+    els.startScanBtn.addEventListener("click", openScanner);
+    els.flashBtn.addEventListener("click", toggleFlash);
+    els.addChemicalBtn.addEventListener("click", addChemical);
+    els.rescanBtn.addEventListener("click", async () => {
+      await stopScanner();
+      lastProductName = "";
+      lastBarcode = "";
+      els.amount.value = "";
+      els.unit.value = "";
+      openScanner();
+    });
+    els.submitBtn.addEventListener("click", submitData);
+
+    window.addEventListener("beforeunload", stopScanner);
+    window.addEventListener("pagehide", stopScanner);
+
+    els.employeeName.value = localStorage.getItem("employeeName") || "";
+    renderList();
+  </script>
+</body>
+</html>
