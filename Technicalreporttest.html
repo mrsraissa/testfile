@@ -193,6 +193,10 @@
     const LOOKUP_TIMEOUT_MS = 12000;
     const LOOKUP_MAX_ATTEMPTS = 2;
     const LOOKUP_RETRY_DELAY_MS = 650;
+    const INVENTORY_CACHE_KEY = "technicalReportInventoryCacheV2";
+    const INVENTORY_CACHE_TIME_KEY = "technicalReportInventoryCacheTimeV2";
+    const INVENTORY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    const INVENTORY_REFRESH_TIMEOUT_MS = 12000;
     const SUBMIT_TIMEOUT_MS = 20000;
 
     const chemicals = [];
@@ -208,6 +212,9 @@
     let lastProductName = "";
     let editingId = null;
     let scanStartedAt = 0;
+    let inventoryMap = {};
+    let inventoryReady = false;
+    let pendingSubmissionId = null;
     let lastDetectedBarcode = "";
     let lastDetectedAt = 0;
 
@@ -377,6 +384,121 @@
       }
     }
 
+    function loadCachedInventory() {
+      try {
+        const raw = localStorage.getItem(INVENTORY_CACHE_KEY);
+        const savedAt = Number(localStorage.getItem(INVENTORY_CACHE_TIME_KEY) || 0);
+
+        if (!raw) return false;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return false;
+
+        inventoryMap = parsed;
+        inventoryReady = Object.keys(inventoryMap).length > 0;
+
+        if (inventoryReady) {
+          const ageMinutes = savedAt
+            ? Math.round((Date.now() - savedAt) / 60000)
+            : null;
+
+          logDiagnostic(
+            `Local inventory loaded: ${Object.keys(inventoryMap).length} chemicals` +
+            (ageMinutes !== null ? `; cache age: ${ageMinutes} min.` : ".")
+          );
+        }
+
+        return inventoryReady;
+      } catch (error) {
+        console.warn("Unable to read cached inventory:", error);
+        return false;
+      }
+    }
+
+    function saveInventoryCache(map) {
+      try {
+        localStorage.setItem(INVENTORY_CACHE_KEY, JSON.stringify(map));
+        localStorage.setItem(INVENTORY_CACHE_TIME_KEY, String(Date.now()));
+      } catch (error) {
+        console.warn("Unable to save inventory cache:", error);
+      }
+    }
+
+    async function refreshInventoryInBackground(force = false) {
+      const savedAt = Number(localStorage.getItem(INVENTORY_CACHE_TIME_KEY) || 0);
+      const isFresh =
+        inventoryReady &&
+        savedAt &&
+        (Date.now() - savedAt) < INVENTORY_CACHE_MAX_AGE_MS;
+
+      if (!force && isFresh) {
+        logDiagnostic("Local inventory cache is fresh; no refresh needed.");
+        return;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        INVENTORY_REFRESH_TIMEOUT_MS
+      );
+
+      const start = performance.now();
+
+      try {
+        const response = await fetch(
+          `${SCRIPT_URL}?action=inventory&_=${Date.now()}`,
+          {
+            cache: "no-store",
+            signal: controller.signal
+          }
+        );
+
+        const text = await response.text();
+        if (!response.ok) {
+          throw new Error(`Inventory refresh server error ${response.status}`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (_) {
+          throw new Error("Inventory refresh returned invalid JSON.");
+        }
+
+        if (data.status !== "success" || !data.inventory) {
+          throw new Error(data.message || "Inventory refresh was not confirmed.");
+        }
+
+        inventoryMap = data.inventory;
+        inventoryReady = Object.keys(inventoryMap).length > 0;
+        saveInventoryCache(inventoryMap);
+
+        const totalMs = Math.round(performance.now() - start);
+        logDiagnostic(
+          `Inventory refreshed: ${data.count ?? Object.keys(inventoryMap).length} chemicals; ` +
+          `round trip: ${totalMs} ms; server: ${data.durationMs ?? "n/a"} ms.`
+        );
+
+      } catch (error) {
+        const message = error.name === "AbortError"
+          ? "Inventory refresh timed out."
+          : (error.message || "Inventory refresh failed.");
+
+        if (inventoryReady) {
+          logDiagnostic(`${message} Using local cached inventory.`);
+        } else {
+          logDiagnostic(`${message} No local inventory is available yet.`);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    function findChemicalLocally(barcode) {
+      if (!inventoryReady) return null;
+      return inventoryMap[normalizeBarcode(barcode)] || null;
+    }
+
     function sleep(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -474,7 +596,36 @@
 
       lastBarcode = barcode;
       lastProductName = "";
-      els.productInfo.innerHTML = `✅ Barcode read: <strong>${barcode}</strong><br>🔍 Checking inventory...`;
+
+      // FAST PATH: lookup entirely on the phone from the downloaded 179-item inventory.
+      const localStart = performance.now();
+      const localProduct = findChemicalLocally(barcode);
+
+      if (inventoryReady) {
+        const localMs = Math.round(performance.now() - localStart);
+
+        if (localProduct) {
+          lastProductName = String(localProduct).trim();
+          els.productInfo.innerHTML =
+            `✅ <strong>${escapeHtml(lastProductName)}</strong>` +
+            `<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+
+          logDiagnostic(`Local lookup: ${localMs} ms. No network request needed.`);
+        } else {
+          els.productInfo.innerHTML =
+            `❌ Product not found<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+
+          logDiagnostic(`Local lookup: ${localMs} ms; barcode not found in cached inventory.`);
+        }
+
+        await stopScanner();
+        return;
+      }
+
+      // FALLBACK: only used if this phone has never successfully downloaded inventory.
+      els.productInfo.innerHTML =
+        `✅ Barcode read: <strong>${escapeHtml(barcode)}</strong>` +
+        `<br>🔍 Checking inventory...`;
 
       try {
         const lookupStart = performance.now();
@@ -487,28 +638,38 @@
         const lookupMs = Math.round(performance.now() - lookupStart);
 
         logDiagnostic(
-          `Lookup round trip: ${lookupMs} ms; server: ${data.durationMs ?? "n/a"} ms; attempt: ${attempt}/${LOOKUP_MAX_ATTEMPTS}.`
+          `Remote fallback lookup: ${lookupMs} ms; server: ${data.durationMs ?? "n/a"} ms; ` +
+          `attempt: ${attempt}/${LOOKUP_MAX_ATTEMPTS}.`
         );
 
         if (attempt > 1) {
-          logDiagnostic(`Lookup recovered automatically after a temporary connection failure. Last attempt: ${attemptMs} ms.`);
+          logDiagnostic(
+            `Lookup recovered automatically after a temporary connection failure. Last attempt: ${attemptMs} ms.`
+          );
         }
 
         if (data.status === "found") {
           lastProductName = String(data.product || "").trim();
-          els.productInfo.innerHTML = `✅ <strong>${escapeHtml(lastProductName)}</strong><br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+          els.productInfo.innerHTML =
+            `✅ <strong>${escapeHtml(lastProductName)}</strong>` +
+            `<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
         } else if (data.status === "not_found") {
-          els.productInfo.innerHTML = `❌ Product not found<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
+          els.productInfo.innerHTML =
+            `❌ Product not found<br><small>Barcode: ${escapeHtml(barcode)}</small>`;
         } else {
           throw new Error(data.message || "Inventory lookup failed.");
         }
+
       } catch (error) {
         if (token !== scanToken) return;
+
         const message = error.name === "AbortError"
           ? "Inventory lookup timed out. Please try again."
           : (error.message || "Unable to check inventory.");
+
         els.productInfo.textContent = `❌ ${message}`;
         logDiagnostic(`Lookup error: ${message}`);
+
       } finally {
         lookupController = null;
         if (token === scanToken) await stopScanner();
@@ -575,6 +736,7 @@
       els.scannerUI.style.display = "none";
       els.startScanBtn.classList.remove("hidden");
       els.result.textContent = "";
+      pendingSubmissionId = null;
       renderList();
     }
 
@@ -597,6 +759,7 @@
       const index = chemicals.findIndex(entry => entry.id === id);
       if (index < 0) return;
       chemicals.splice(index, 1);
+      pendingSubmissionId = null;
       renderList();
     }
 
@@ -640,7 +803,9 @@
         return;
       }
 
-      const submissionId = createId();
+      const submissionId = pendingSubmissionId || createId();
+      pendingSubmissionId = submissionId;
+
       const payload = {
         action: "submitTechnicalReport",
         submissionId,
@@ -677,6 +842,7 @@
         logDiagnostic(`Submission round trip: ${submitMs} ms; server: ${data.durationMs ?? "n/a"} ms; ID: ${submissionId}`);
         els.result.textContent = `✅ ${data.rowsSaved} chemical record(s) saved successfully.`;
         chemicals.length = 0;
+        pendingSubmissionId = null;
         renderList();
       } catch (error) {
         const message = error.name === "AbortError"
@@ -714,6 +880,11 @@
 
     els.employeeName.value = localStorage.getItem("employeeName") || "";
     renderList();
+
+    // Immediate reliability fix:
+    // use any previously downloaded inventory instantly, then refresh quietly.
+    loadCachedInventory();
+    refreshInventoryInBackground(false);
   </script>
 </body>
 </html>
