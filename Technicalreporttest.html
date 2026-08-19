@@ -198,6 +198,8 @@
     const INVENTORY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const INVENTORY_REFRESH_TIMEOUT_MS = 12000;
     const SUBMIT_TIMEOUT_MS = 20000;
+    const SUBMIT_MAX_ATTEMPTS = 2;
+    const SUBMIT_RETRY_DELAY_MS = 1200;
 
     const chemicals = [];
     let codeReader = null;
@@ -793,17 +795,118 @@
       });
     }
 
+    async function requestSubmission(payload, submissionId) {
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= SUBMIT_MAX_ATTEMPTS; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          SUBMIT_TIMEOUT_MS
+        );
+
+        const attemptStart = performance.now();
+
+        try {
+          if (attempt > 1) {
+            els.result.textContent =
+              `⏳ Connection interrupted. Retrying submission automatically...`;
+
+            logDiagnostic(
+              `Retrying submission automatically (attempt ${attempt}/${SUBMIT_MAX_ATTEMPTS}); ID: ${submissionId}.`
+            );
+          }
+
+          const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+
+          const text = await response.text();
+
+          if (!response.ok) {
+            const serverError = new Error(
+              `Submission server error ${response.status}`
+            );
+            serverError.retryable = response.status >= 500;
+            throw serverError;
+          }
+
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (_) {
+            const parseError = new Error(
+              "Submission returned invalid JSON."
+            );
+            parseError.retryable = false;
+            throw parseError;
+          }
+
+          const attemptMs = Math.round(
+            performance.now() - attemptStart
+          );
+
+          return {
+            data,
+            attempt,
+            attemptMs
+          };
+
+        } catch (error) {
+          lastError = error;
+
+          const isAbort = error?.name === "AbortError";
+          const isNetworkFailure =
+            error instanceof TypeError ||
+            /load failed|failed to fetch|network/i.test(
+              String(error?.message || "")
+            );
+
+          const retryable =
+            !isAbort &&
+            (isNetworkFailure || error?.retryable === true);
+
+          if (!retryable || attempt >= SUBMIT_MAX_ATTEMPTS) {
+            throw error;
+          }
+
+          logDiagnostic(
+            `Submission attempt ${attempt} failed (${error.message || error}). ` +
+            `Retrying in ${SUBMIT_RETRY_DELAY_MS} ms; ID: ${submissionId}.`
+          );
+
+          await sleep(SUBMIT_RETRY_DELAY_MS);
+
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+
+      throw lastError || new Error("Submission failed.");
+    }
+
     async function submitData() {
       if (!chemicals.length) {
-        els.result.textContent = "❌ Add at least one chemical before submitting.";
-        return;
-      }
-      if (!SCRIPT_URL.startsWith("https://script.google.com/macros/s/")) {
-        els.result.textContent = "❌ Add the test Apps Script deployment URL in SCRIPT_URL.";
+        els.result.textContent =
+          "❌ Add at least one chemical before submitting.";
         return;
       }
 
-      const submissionId = pendingSubmissionId || createId();
+      if (!SCRIPT_URL.startsWith("https://script.google.com/macros/s/")) {
+        els.result.textContent =
+          "❌ Add the test Apps Script deployment URL in SCRIPT_URL.";
+        return;
+      }
+
+      // IMPORTANT:
+      // Reuse the SAME submission ID after a failed attempt.
+      // This allows the server to recognize a retry and avoid duplicates.
+      const submissionId =
+        pendingSubmissionId || createId();
+
       pendingSubmissionId = submissionId;
 
       const payload = {
@@ -813,45 +916,67 @@
       };
 
       els.submitBtn.disabled = true;
-      els.result.textContent = `⏳ Sending ${chemicals.length} chemical record(s)...`;
+      els.result.textContent =
+        `⏳ Sending ${chemicals.length} chemical record(s)...`;
+
       const submitStart = performance.now();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
 
       try {
-        const response = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
+        const { data, attempt, attemptMs } =
+          await requestSubmission(payload, submissionId);
 
-        const text = await response.text();
-        if (!response.ok) throw new Error(`Submission server error ${response.status}`);
-
-        let data;
-        try { data = JSON.parse(text); }
-        catch (_) { throw new Error("Submission returned invalid JSON."); }
-
-        if (data.status !== "success") throw new Error(data.message || "Submission was not confirmed.");
-        if (Number(data.rowsSaved) !== chemicals.length) {
-          throw new Error(`Server confirmed ${data.rowsSaved} of ${chemicals.length} rows.`);
+        if (data.status !== "success") {
+          throw new Error(
+            data.message || "Submission was not confirmed."
+          );
         }
 
-        const submitMs = Math.round(performance.now() - submitStart);
-        logDiagnostic(`Submission round trip: ${submitMs} ms; server: ${data.durationMs ?? "n/a"} ms; ID: ${submissionId}`);
-        els.result.textContent = `✅ ${data.rowsSaved} chemical record(s) saved successfully.`;
+        if (Number(data.rowsSaved) !== chemicals.length) {
+          throw new Error(
+            `Server confirmed ${data.rowsSaved} of ${chemicals.length} rows.`
+          );
+        }
+
+        const submitMs =
+          Math.round(performance.now() - submitStart);
+
+        logDiagnostic(
+          `Submission round trip: ${submitMs} ms; ` +
+          `server: ${data.durationMs ?? "n/a"} ms; ` +
+          `attempt: ${attempt}/${SUBMIT_MAX_ATTEMPTS}; ` +
+          `ID: ${submissionId}`
+        );
+
+        if (attempt > 1) {
+          logDiagnostic(
+            `Submission recovered automatically after a temporary connection failure. ` +
+            `Last attempt: ${attemptMs} ms.`
+          );
+        }
+
+        els.result.textContent =
+          `✅ ${data.rowsSaved} chemical record(s) saved successfully.`;
+
         chemicals.length = 0;
         pendingSubmissionId = null;
         renderList();
+
       } catch (error) {
-        const message = error.name === "AbortError"
-          ? "Submission timed out. The list was kept. Check the sheet before trying again."
+        const isAbort = error?.name === "AbortError";
+
+        const message = isAbort
+          ? "Submission timed out. Your chemical list was kept. Please try again."
           : (error.message || "Submission failed.");
-        els.result.textContent = `❌ ${message}`;
-        logDiagnostic(`Submission error: ${message}; ID: ${submissionId}`);
+
+        els.result.textContent =
+          `❌ ${message}
+Your chemical list was not erased. Please try again.`;
+
+        logDiagnostic(
+          `Submission error: ${message}; ID: ${submissionId}`
+        );
+
       } finally {
-        clearTimeout(timeoutId);
         els.submitBtn.disabled = false;
       }
     }
