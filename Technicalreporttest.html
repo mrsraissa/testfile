@@ -5,7 +5,7 @@
   <title>Technical Report Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#66bb6a" />
-  <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+  
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
@@ -113,6 +113,45 @@
     .hidden { display: none !important; }
     @media (max-width: 520px) { .field-grid { grid-template-columns: 1fr; } }
   </style>
+
+  <script>
+    window.ZXING_READY = new Promise((resolve, reject) => {
+      const sources = [
+        "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js",
+        "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"
+      ];
+
+      let index = 0;
+
+      function loadNext() {
+        if (index >= sources.length) {
+          reject(new Error("ZXing scanner library could not be loaded."));
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = sources[index++];
+        script.async = true;
+
+        script.onload = () => {
+          if (window.ZXing) {
+            resolve(window.ZXing);
+          } else {
+            loadNext();
+          }
+        };
+
+        script.onerror = () => {
+          loadNext();
+        };
+
+        document.head.appendChild(script);
+      }
+
+      loadNext();
+    });
+  </script>
+
 </head>
 <body>
   <div class="page-wrapper">
@@ -247,14 +286,32 @@
       return String(value ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
     }
 
+    async function ensureZXingReady() {
+      try {
+        if (window.ZXing) return window.ZXing;
+
+        els.productInfo.textContent = "Loading scanner...";
+        const ZX = await window.ZXING_READY;
+
+        if (!ZX) {
+          throw new Error("Scanner library is unavailable.");
+        }
+
+        return ZX;
+      } catch (error) {
+        throw new Error(
+          "Scanner library could not be loaded. Please refresh the page and try again."
+        );
+      }
+    }
+
     function createId() {
       if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
       return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
-    function createCodeReader() {
-      // Use all ZXing-supported barcode formats for maximum compatibility.
-      return new ZXing.BrowserMultiFormatReader();
+    function createCodeReader(ZX) {
+      return new ZX.BrowserMultiFormatReader();
     }
 
     async function optimizeActiveCamera() {
@@ -310,7 +367,8 @@
           throw new Error("Camera access is not supported in this browser.");
         }
 
-        codeReader = createCodeReader();
+        const ZX = await ensureZXingReady();
+        codeReader = createCodeReader(ZX);
         scannerActive = true;
 
         const constraints = {
@@ -358,7 +416,7 @@
               return;
             }
 
-            if (error && !(error instanceof ZXing.NotFoundException)) {
+            if (error && !(error instanceof ZX.NotFoundException)) {
               console.error(error);
               logDiagnostic(`Scanner warning: ${error.message || error}`);
             }
@@ -1010,6 +1068,10 @@ Your chemical list was not erased. Please try again.`;
     // use any previously downloaded inventory instantly, then refresh quietly.
     loadCachedInventory();
     refreshInventoryInBackground(false);
+
+    window.ZXING_READY
+      .then(() => logDiagnostic("ZXing scanner library loaded successfully."))
+      .catch(error => logDiagnostic(`ZXing load error: ${error.message || error}`));
   </script>
 </body>
 </html>
