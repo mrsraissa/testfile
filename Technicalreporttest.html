@@ -206,6 +206,8 @@
     let lastProductName = "";
     let editingId = null;
     let scanStartedAt = 0;
+    let lastDetectedBarcode = "";
+    let lastDetectedAt = 0;
 
     const els = {
       startScanBtn: document.getElementById("startScanBtn"),
@@ -239,6 +241,62 @@
       return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
+    function createCodeReader() {
+      try {
+        const hints = new Map();
+
+        // These are the common 1D barcode formats used on product/chemical labels.
+        // Restricting formats prevents ZXing from spending time checking unrelated formats.
+        const formats = [
+          ZXing.BarcodeFormat.CODE_128,
+          ZXing.BarcodeFormat.CODE_39,
+          ZXing.BarcodeFormat.CODE_93,
+          ZXing.BarcodeFormat.EAN_13,
+          ZXing.BarcodeFormat.EAN_8,
+          ZXing.BarcodeFormat.UPC_A,
+          ZXing.BarcodeFormat.UPC_E,
+          ZXing.BarcodeFormat.ITF,
+          ZXing.BarcodeFormat.CODABAR
+        ].filter(Boolean);
+
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+        return new ZXing.BrowserMultiFormatReader(hints, 120);
+      } catch (error) {
+        console.warn("ZXing hints unavailable; using default reader.", error);
+        return new ZXing.BrowserMultiFormatReader();
+      }
+    }
+
+    async function optimizeActiveCamera() {
+      // Give the browser a moment to attach the stream to the video element.
+      await new Promise(resolve => setTimeout(resolve, 180));
+
+      currentStream = els.preview.srcObject;
+      currentTrack = currentStream?.getVideoTracks?.()[0] || null;
+
+      if (!currentTrack) return;
+
+      try {
+        const capabilities = currentTrack.getCapabilities?.() || {};
+        const advanced = [];
+
+        if (Array.isArray(capabilities.focusMode) &&
+            capabilities.focusMode.includes("continuous")) {
+          advanced.push({ focusMode: "continuous" });
+        }
+
+        if (advanced.length) {
+          await currentTrack.applyConstraints({ advanced });
+          logDiagnostic("Continuous autofocus enabled.");
+        }
+      } catch (error) {
+        // Autofocus support varies by phone/browser; scanning continues normally.
+        console.warn("Camera optimization not supported:", error);
+      }
+    }
+
     async function stopScanner() {
       scanToken += 1;
       scannerActive = false;
@@ -260,28 +318,23 @@
 
       currentTrack = null;
       flashOn = false;
+      els.flashBtn.textContent = "🔦";
       els.preview.srcObject = null;
-    }
-
-    async function getRearCameraId() {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cameras = devices.filter(device => device.kind === "videoinput");
-      if (!cameras.length) return null;
-
-      const rear = cameras.find(camera => /back|rear|environment/i.test(camera.label));
-      return (rear || cameras[cameras.length - 1]).deviceId || null;
     }
 
     async function openScanner() {
       if (scannerStarting || scannerActive) return;
+
       scannerStarting = true;
       els.startScanBtn.disabled = true;
       els.result.textContent = "";
-      els.productInfo.textContent = "Opening camera...";
+      els.productInfo.textContent = "Opening rear camera...";
       els.startScanBtn.classList.add("hidden");
       els.scannerUI.style.display = "flex";
 
+      // Cleanly stop any previous camera/lookup before starting a new scan.
       await stopScanner();
+
       const myToken = ++scanToken;
       scanStartedAt = performance.now();
 
@@ -290,48 +343,75 @@
           throw new Error("Camera access is not supported in this browser.");
         }
 
-        // Ask permission once so camera labels become available.
-        const permissionStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        });
-        permissionStream.getTracks().forEach(track => track.stop());
-
-        const deviceId = await getRearCameraId();
-        codeReader = new ZXing.BrowserMultiFormatReader();
+        codeReader = createCodeReader();
         scannerActive = true;
+
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+
         els.productInfo.textContent = "Point the camera at the barcode...";
-        logDiagnostic("Camera opened. Waiting for barcode.");
+        logDiagnostic("Opening one rear-camera stream...");
 
-        // ZXing owns the only active stream.
-        codeReader.decodeFromVideoDevice(deviceId, els.preview, async (result, error) => {
-          if (myToken !== scanToken || !scannerActive) return;
+        // IMPORTANT: ZXing opens ONE stream directly from these constraints.
+        // We no longer open a temporary permission stream and then reopen the camera.
+        codeReader.decodeFromConstraints(
+          constraints,
+          els.preview,
+          async (result, error) => {
+            if (myToken !== scanToken || !scannerActive) return;
 
-          if (result) {
-            scannerActive = false;
-            const barcode = normalizeBarcode(result.text);
-            const decodeMs = Math.round(performance.now() - scanStartedAt);
-            logDiagnostic(`Barcode read in ${decodeMs} ms: ${barcode}`);
-            await handleBarcode(barcode, myToken);
-            return;
+            if (result) {
+              const barcode = normalizeBarcode(result.text);
+              if (!barcode) return;
+
+              // Extra guard against the same physical barcode being emitted twice.
+              const now = performance.now();
+              if (
+                barcode === lastDetectedBarcode &&
+                now - lastDetectedAt < 1500
+              ) {
+                return;
+              }
+              lastDetectedBarcode = barcode;
+              lastDetectedAt = now;
+
+              scannerActive = false;
+
+              const decodeMs = Math.round(now - scanStartedAt);
+              logDiagnostic(`Barcode read in ${decodeMs} ms: ${barcode}`);
+
+              await handleBarcode(barcode, myToken);
+              return;
+            }
+
+            if (error && !(error instanceof ZXing.NotFoundException)) {
+              console.error(error);
+              logDiagnostic(`Scanner warning: ${error.message || error}`);
+            }
           }
+        );
 
-          if (error && !(error instanceof ZXing.NotFoundException)) {
-            console.error(error);
-            logDiagnostic(`Scanner warning: ${error.message || error}`);
-          }
-        });
+        await optimizeActiveCamera();
 
-        // Retrieve the stream created by ZXing from the video element.
-        await new Promise(resolve => setTimeout(resolve, 250));
-        currentStream = els.preview.srcObject;
-        currentTrack = currentStream?.getVideoTracks?.()[0] || null;
+        const openMs = Math.round(performance.now() - scanStartedAt);
+        logDiagnostic(`Camera ready in ${openMs} ms. Waiting for barcode.`);
+
       } catch (error) {
         console.error(error);
         await stopScanner();
-        els.productInfo.textContent = `❌ ${error.message || "Unable to start camera."}`;
+
+        els.productInfo.textContent =
+          `❌ ${error.message || "Unable to start camera."}`;
+
         els.startScanBtn.classList.remove("hidden");
         logDiagnostic(`Camera error: ${error.message || error}`);
+
       } finally {
         scannerStarting = false;
         els.startScanBtn.disabled = false;
@@ -400,6 +480,7 @@
         if (!capabilities.torch) throw new Error("Flash is not supported on this device.");
         flashOn = !flashOn;
         await track.applyConstraints({ advanced: [{ torch: flashOn }] });
+        els.flashBtn.textContent = flashOn ? "💡" : "🔦";
       } catch (error) {
         alert(error.message || "Unable to control flash.");
       }
