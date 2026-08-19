@@ -242,59 +242,15 @@
     }
 
     function createCodeReader() {
-      try {
-        const hints = new Map();
-
-        // These are the common 1D barcode formats used on product/chemical labels.
-        // Restricting formats prevents ZXing from spending time checking unrelated formats.
-        const formats = [
-          ZXing.BarcodeFormat.CODE_128,
-          ZXing.BarcodeFormat.CODE_39,
-          ZXing.BarcodeFormat.CODE_93,
-          ZXing.BarcodeFormat.EAN_13,
-          ZXing.BarcodeFormat.EAN_8,
-          ZXing.BarcodeFormat.UPC_A,
-          ZXing.BarcodeFormat.UPC_E,
-          ZXing.BarcodeFormat.ITF,
-          ZXing.BarcodeFormat.CODABAR
-        ].filter(Boolean);
-
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-        return new ZXing.BrowserMultiFormatReader(hints, 120);
-      } catch (error) {
-        console.warn("ZXing hints unavailable; using default reader.", error);
-        return new ZXing.BrowserMultiFormatReader();
-      }
+      // Use all ZXing-supported barcode formats for maximum compatibility.
+      return new ZXing.BrowserMultiFormatReader();
     }
 
     async function optimizeActiveCamera() {
-      // Give the browser a moment to attach the stream to the video element.
+      // Keep this test simple: no extra autofocus constraints.
       await new Promise(resolve => setTimeout(resolve, 180));
-
       currentStream = els.preview.srcObject;
       currentTrack = currentStream?.getVideoTracks?.()[0] || null;
-
-      if (!currentTrack) return;
-
-      try {
-        const capabilities = currentTrack.getCapabilities?.() || {};
-        const advanced = [];
-
-        if (Array.isArray(capabilities.focusMode) &&
-            capabilities.focusMode.includes("continuous")) {
-          advanced.push({ focusMode: "continuous" });
-        }
-
-        if (advanced.length) {
-          await currentTrack.applyConstraints({ advanced });
-          logDiagnostic("Continuous autofocus enabled.");
-        }
-      } catch (error) {
-        // Autofocus support varies by phone/browser; scanning continues normally.
-        console.warn("Camera optimization not supported:", error);
-      }
     }
 
     async function stopScanner() {
@@ -368,6 +324,7 @@
 
             if (result) {
               const barcode = normalizeBarcode(result.text);
+              const barcodeFormat = result.getBarcodeFormat ? result.getBarcodeFormat() : "unknown";
               if (!barcode) return;
 
               // Extra guard against the same physical barcode being emitted twice.
@@ -384,7 +341,7 @@
               scannerActive = false;
 
               const decodeMs = Math.round(now - scanStartedAt);
-              logDiagnostic(`Barcode read in ${decodeMs} ms: ${barcode}`);
+              logDiagnostic(`Barcode read in ${decodeMs} ms: ${barcode}; format: ${barcodeFormat}`);
 
               await handleBarcode(barcode, myToken);
               return;
